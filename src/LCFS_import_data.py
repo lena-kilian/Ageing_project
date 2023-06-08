@@ -74,7 +74,7 @@ for year in years:
     temp = temp.groupby(['level_1', 0]).count().reset_index()
     temp = temp.loc[temp[0] == True].set_index('level_1')[['case']]
     temp.columns = [year]
-    sinlge = single.join(temp)
+    single = single.join(temp)
 
 
 couple = pd.DataFrame(index=['60+', '65+', '69+'])
