@@ -25,33 +25,17 @@ if platform[:3] == 'win' and 'ds.leeds.ac.uk' in path:
 elif platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
     data_path = 'C:/Users/geolki/Documents/Analysis/data/'
 else:
-    data_path = r'/Users/lenakilian/Documents/Ausbildung/UoLeeds/PhD/Analysis/data'
+    data_path = r'/Users/lenakilian/Documents/Ausbildung/UoLeeds/PhD/Analysis/data/'
     
 output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project'
 
 years = list(range(2001, 2021))
-lcf_years = dict(zip(years, ['2001-2002', '2002-2003', '2003-2004', '2004-2005', '2005-2006', '2006', '2007', '2008', '2009', 
-                             '2010', '2011', '2012', '2013', '2014', '2015-2016', '2016-2017', '2017-2018', '2018-2019', '2019-2020',
-                             '2020-2021']))
-
-
-
-# Define function needed
-def isNaN(string):
-    return string != string
-
 
 # Load LCFS data
-lcfs = {}
-for year in years:
-    dvhh_file = data_path + 'raw/LCFS/' + lcf_years[year] + '/tab/' + lcf_years[year] + '_dvhh_ukanon.tab'
-    dvper_file = data_path + 'raw/LCFS/' + lcf_years[year] + '/tab/' + lcf_years[year] + '_dvper_ukanon.tab'
-    
-    lcfs[year] = lcfs_import.import_lcfs(year, dvhh_file, dvper_file).drop_duplicates()
-    lcfs[year] = lcfs[year].reset_index()
-    lcfs[year].columns = [x.lower() for x in lcfs[year].columns]
-    lcfs[year] = lcfs[year].set_index('case')  
-    
+coicop_lookup = pd.read_csv(output_path + 'inputs/LCF_variables.csv', header = 0).fillna(0)
+
+lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path) for year in years}
+
 
 # age_dict = {0:'Not recorded', 3:'15-19', 4:'20-25', 5:'25-30' , 6:'30-35', 7:'35-40', 8:'40-45', 9:'45-50', 10:'50-55', 11:'55-60', 
 #             12:'60-65', 13:'65-70', 14:'70-75', 15:'75-80', 16:'80+'}
