@@ -54,8 +54,10 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
             exp_items.append(desc)
         
         var = dvhh_lookup.loc[item, yr]
-        if var == 0:
+        if var == 0 or var == '0':
             useful_data[desc] = 0
+        elif var[0] == '-':
+            useful_data[desc] = -1*dvhh[var[1:]]
         else:
             useful_data[desc] = dvhh[var]
     

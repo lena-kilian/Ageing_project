@@ -27,14 +27,14 @@ elif platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
 else:
     data_path = r'/Users/lenakilian/Documents/Ausbildung/UoLeeds/PhD/Analysis/data/'
     
-output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project'
+output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
 years = list(range(2001, 2021))
 
 # Load LCFS data
 coicop_lookup = pd.read_csv(output_path + 'inputs/LCF_variables.csv', header = 0).fillna(0)
 
-lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path) for year in years}
+lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
 
 
 # age_dict = {0:'Not recorded', 3:'15-19', 4:'20-25', 5:'25-30' , 6:'30-35', 7:'35-40', 8:'40-45', 9:'45-50', 10:'50-55', 11:'55-60', 
