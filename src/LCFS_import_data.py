@@ -36,3 +36,25 @@ coicop_lookup = pd.read_csv(output_path + 'inputs/LCF_variables.csv', header = 0
 
 lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
 
+# add household composition for households of interest
+for year in years:
+    person_data = lcfs[year].loc[:,:'1.1.1'].iloc[:,:-1]
+    spend_data = lcfs[year].loc[:,'1.1.1':]
+    # add SPH variable
+    person_data['single'] = (person_data['no_people'] == 1)
+    # add couple variable
+    person_data['couple'] = ((person_data['partners_spouses'] == 1) & (person_data['no_people'] == 2))
+    # add age variable
+    person_data['65+'] = (person_data['age_youngest'] >= 65)
+    person_data['65-74'] = ((person_data['age_youngest'] >= 65) & (person_data['age_oldest'] < 75))
+    person_data['75+'] = (person_data['age_youngest'] >= 75)
+    
+    # combine these variables
+    for status in ['single', 'couple']:
+        for age in ['65+', '65-74', '75+']:
+            person_data[status + '_' + age] = ((person_data[status] == True) & (person_data[age] == True))
+
+### CONTINUE HERE!!
+
+# save data
+[]

@@ -94,6 +94,10 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     useful_data.loc[useful_data['home_ownership'].isin([5, 6, 7]) == True, 'home_ownership'] = 1
     
     useful_data['4.2.1.1.1'] = useful_data['4.2.1.1.1'] * useful_data['home_ownership']
+    
+    # aggregate from individual variables to coicop 3
+    idx_dict = dict(zip(dvhh_lookup.index.tolist(), dvhh_lookup['Coicop_3']))
+    useful_data = useful_data.rename(columns=idx_dict).sum(axis=1, level=0)
    
     return useful_data
 
