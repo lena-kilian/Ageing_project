@@ -13,13 +13,19 @@ import LCFS_import_data_function as lcfs_import
 import copy as cp
 import numpy as np
 from sys import platform
+import pathlib
 
 # set working directory
 # make different path depending on operating system
-if platform[:3] == 'win':
-    wd = 'C:/Users/geolki/Documents/PhD/Analysis/'
+
+path = str(pathlib.Path().resolve())
+
+if platform[:3] == 'win' and 'ds.leeds.ac.uk' in path:
+    data_path = 'O:/UKMRIO_Data/data/'
+elif platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
+    data_path = 'C:/Users/geolki/Documents/Analysis/data/'
 else:
-    wd = r'/Users/lenakilian/Documents/Ausbildung/UoLeeds//PhD/Analysis/'
+    data_path = r'/Users/lenakilian/Documents/Ausbildung/UoLeeds/PhD/Analysis/data'
 
 years = list(range(2001, 2021))
 lcf_years = dict(zip(years, ['2001-2002', '2002-2003', '2003-2004', '2004-2005', '2005-2006', '2006', '2007', '2008', '2009', 
@@ -34,8 +40,8 @@ def isNaN(string):
 # Load LCFS data
 lcfs = {}
 for year in years:
-    dvhh_file = wd + 'data/raw/LCFS/' + lcf_years[year] + '/tab/' + lcf_years[year] + '_dvhh_ukanon.tab'
-    dvper_file = wd + 'data/raw/LCFS/' + lcf_years[year] + '/tab/' + lcf_years[year] + '_dvper_ukanon.tab'
+    dvhh_file = data_path + 'raw/LCFS/' + lcf_years[year] + '/tab/' + lcf_years[year] + '_dvhh_ukanon.tab'
+    dvper_file = data_path + 'raw/LCFS/' + lcf_years[year] + '/tab/' + lcf_years[year] + '_dvper_ukanon.tab'
     
     lcfs[year] = lcfs_import.import_lcfs(year, dvhh_file, dvper_file).drop_duplicates()
     lcfs[year] = lcfs[year].reset_index()
