@@ -78,10 +78,10 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
         var = dvhh_lookup.loc[item, yr]
         if var == 0 or var == '0':
             useful_data[desc] = 0
-        elif var[0] == '-':
-            useful_data[desc] = -1*dvhh[var[1:]]
+        elif var[:3] == '(-)':
+            useful_data[desc] = -1*dvhh[var[3:].lower()]
         else:
-            useful_data[desc] = dvhh[var]
+            useful_data[desc] = dvhh[var.lower()]
     
     # multiply expenditure variables by weight to get UK total
     useful_data[exp_items] = useful_data[exp_items].apply(lambda x: x * useful_data['weight'])
@@ -94,10 +94,6 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     useful_data.loc[useful_data['home_ownership'].isin([5, 6, 7]) == True, 'home_ownership'] = 1
     
     useful_data['4.2.1.1.1'] = useful_data['4.2.1.1.1'] * useful_data['home_ownership']
-    
-    # aggregate from individual variables to coicop 3
-    idx_dict = dict(zip(dvhh_lookup.index.tolist(), dvhh_lookup['Coicop_3']))
-    useful_data = useful_data.rename(columns=idx_dict).sum(axis=1, level=0)
    
     return useful_data
 

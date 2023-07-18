@@ -10,8 +10,6 @@ Import hhld expenditure data and adjust physical units 2001-2018
 
 import pandas as pd
 import LCFS_import_data_function as lcfs_import
-import copy as cp
-import numpy as np
 from sys import platform
 import pathlib
 
@@ -39,8 +37,8 @@ lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS
 count = pd.DataFrame()
 # add household composition for households of interest
 for year in years:
-    person_data = lcfs[year].loc[:,:'1.1.1'].iloc[:,:-1]
-    spend_data = lcfs[year].loc[:,'1.1.1':]
+    person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
+    spend_data = lcfs[year].loc[:,'1.1.1.1.1':]
     # add SPH variable
     person_data['single'] = (person_data['no_people'] == 1)
     # add couple variable
@@ -100,6 +98,6 @@ count.to_csv(output_path + 'outputs/detailed_survey_counts.csv')
 
 ### CONTINUE HERE!!
 
-# save data
+# save data - this is already multiplied by weight
 for year in years:
     lcfs[year].to_csv(output_path + 'outputs/LCFS/hhdspend_' + str(year) + '.csv')
