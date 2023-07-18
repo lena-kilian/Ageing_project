@@ -95,8 +95,8 @@ for year in years:
     # save to lcfs
     lcfs[year] = person_data.join(spend_data)
 
-count = count.set_index(['group', 'hhd_type', 'hhd_sex_composition', 'year']).unstack(level='year')
-count.to_csv(output_path + 'detailed_survey_counts.csv')    
+count = count.set_index(['group', 'hhd_type', 'hhd_sex_composition', 'year']).unstack(level='year').fillna(0)
+count.to_csv(output_path + 'outputs/detailed_survey_counts.csv')    
 
 ### CONTINUE HERE!!
 
