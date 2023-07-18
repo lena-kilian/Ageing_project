@@ -310,6 +310,6 @@ def make_footprint(hhdspend, wd):
     
         # this gives GHG emissions for the groups, break down to per capita emissions
         temp = ylcf_props[year].T.apply(lambda x: x*COICOP_ghg[year]['total_ghg'])
-        Total_ghg[year] = temp.T
+        Total_ghg[year] = temp.T[ylcf_props[year].columns.tolist()]
     
     return(Total_ghg, multipliers)

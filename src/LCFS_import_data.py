@@ -71,9 +71,9 @@ for year in years:
             
     person_data['sex_all'] = temp
     person_data['hhd_type_1_sex'] = person_data['sex_all']
-    person_data.loc[(person_data['hhd_type_1'] == 'Other'), 'hhd_type_1_sex'] = 'NA'
+    person_data.loc[(person_data['hhd_type_1'] == 'Other'), 'hhd_type_1_sex'] = 'Other'
     person_data['hhd_type_2_sex'] = person_data['sex_all']
-    person_data.loc[(person_data['hhd_type_2'] == 'Other'), 'hhd_type_2_sex'] = 'NA'
+    person_data.loc[(person_data['hhd_type_2'] == 'Other'), 'hhd_type_2_sex'] = 'Other'
     
     # filter relevant columns
     person_data = person_data[['ethnicity hrp', 'ethnicity partner hrp', 'age_all', 'sex_all',  'home_ownership', 'rooms in accommodation', # general demographic
@@ -83,10 +83,10 @@ for year in years:
                                'weight', 'no_people', 'OECD scale']] # analytical
     
     # add to count DF for summary
-    for group in ['hhd_type_1', 'hhd_type_2']:
-        temp = person_data.groupby([group, group + '_sex']).count().iloc[:,:1].reset_index()
+    for hhd_type in ['hhd_type_1', 'hhd_type_2']:
+        temp = person_data.groupby([hhd_type, hhd_type + '_sex']).count().iloc[:,:1].reset_index()
         temp.columns = ['hhd_type', 'hhd_sex_composition', 'count'] 
-        temp['year'] = year; temp['group'] = group
+        temp['year'] = year; temp['group'] = hhd_type
         
         count = count.append(temp)
     
