@@ -82,8 +82,8 @@ for hhd_type in ['hhd_type_1', 'hhd_type_2']:
     results[hhd_type] = temp.merge(results[hhd_type], on =['hhd_type', 'hhd_sex_composition', 'year'])
 
 
-for hhd_type in ['hhd_type_1', 'hhd_type_2']:
-    with pd.ExcelWriter(output_path + 'outputs/GHG_by_hhd_types.xlsx') as writer:
+with pd.ExcelWriter(output_path + 'outputs/GHG_by_hhd_types.xlsx') as writer:
+    for hhd_type in ['hhd_type_1', 'hhd_type_2']:
         results[hhd_type].to_excel(writer, sheet_name=hhd_type)
 
 check = results['hhd_type_1'].set_index(['year', 'hhd_type'])
