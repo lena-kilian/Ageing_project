@@ -47,6 +47,11 @@ idx = hhd_ghg[years[0]].columns.tolist()
 for year in years:
     hhd_ghg[year] = hhd_ghg[year].apply(lambda x: x/people[year]['weight'])
     hhd_ghg[year] = people[year].join(hhd_ghg[year])
+    
+# save household results
+with pd.ExcelWriter(output_path + 'outputs/GHG_by_hhds.xlsx') as writer:
+    for year in years:
+        hhd_ghg[year].to_excel(writer, sheet_name=str(year))
 
 # calculate emissions from groups
 results = {}; results['hhd_type_1'] = pd.DataFrame(); results['hhd_type_2'] = pd.DataFrame()
