@@ -9,7 +9,6 @@ Aggregating expenditure groups for LCFS by OAC x Region Profiles & UK Supergroup
 """
 
 import pandas as pd
-import copy as cp
 import seaborn as sns
 import matplotlib.pyplot as plt
 
