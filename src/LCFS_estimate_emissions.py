@@ -28,7 +28,7 @@ else:
 
 output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
-years = list(range(2017, 2020))
+years = list(range(2001, 2020))
 
 # load LFC data
 lcfs = {year: pd.read_csv(output_path + 'outputs/LCFS/hhdspend_' + str(year) + '.csv', index_col=0) for year in years}
