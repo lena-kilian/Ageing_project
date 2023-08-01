@@ -31,14 +31,21 @@ years = list(range(2017, 2020))
 
 # Load LCFS data
 coicop_lookup = pd.read_csv(output_path + 'inputs/LCF_variables.csv', header = 0).fillna(0)
+coicop_lookup_dict = dict(zip(coicop_lookup['Coicop_3'], coicop_lookup['Desc_full']))
 
 lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
 
 count = pd.DataFrame()
 # add household composition for households of interest
 for year in years:
-    person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
     spend_data = lcfs[year].loc[:,'1.1.1.1.1':]
+    # extract spend for fuel poverty indicator
+    energy_spend = spend_data.loc[:,'4.5.1.1.1.1':'4.5.5.1.1']
+    # convert spend to coicop 3
+    energy_spend = energy_spend.rename(columns = dict(zip(coicop_lookup['Coicop_full'], coicop_lookup['Coicop_3']))).sum(axis=1, level=0)
+    energy_spend.columns = ['spend_' + x + '_' + coicop_lookup_dict[x] for x in energy_spend.columns]
+    # socio-emographic vaiables
+    person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
     # add SPH variable
     person_data['single'] = (person_data['no_people'] == 1)
     # add couple variable
@@ -61,39 +68,40 @@ for year in years:
     person_data['hhd_type_2'] = person_data[['single_65+', 'single_75+', 'couple_65+', 'couple_75+']].sum(1)
     person_data.loc[person_data['hhd_type_2'] == '', 'hhd_type_2'] = 'Other'
     
-    # change sex_all column
+    # change gender_all column
     temp = []
-    for x in person_data['sex_all']:
+    for x in person_data['gender_all']:
         new = ''
         for i in range(len(x)):
             new += x[i] + '_'
         temp.append(new[:-1])
             
-    person_data['sex_all'] = temp
-    person_data['hhd_type_1_sex'] = person_data['sex_all']
-    person_data.loc[(person_data['hhd_type_1'] == 'Other'), 'hhd_type_1_sex'] = 'Other'
-    person_data['hhd_type_2_sex'] = person_data['sex_all']
-    person_data.loc[(person_data['hhd_type_2'] == 'Other'), 'hhd_type_2_sex'] = 'Other'
+    person_data['gender_all'] = temp
+    person_data.loc[person_data['no_people'] == 2, 'gender_all'] = 'NA'
+    person_data['hhd_type_1_gender'] = person_data['gender_all']
+    person_data.loc[(person_data['hhd_type_1'] == 'Other'), 'hhd_type_1_gender'] = 'Other'
+    person_data['hhd_type_2_gender'] = person_data['gender_all']
+    person_data.loc[(person_data['hhd_type_2'] == 'Other'), 'hhd_type_2_gender'] = 'Other'
     
     # filter relevant columns
-    person_data = person_data[['ethnicity hrp', 'ethnicity partner hrp', 'age_all', 'sex_all',  'home_ownership', 'rooms in accommodation', # general demographic
+    person_data = person_data[['ethnicity hrp', 'ethnicity partner hrp', 'age_all', 'gender_all',  'home_ownership', 'rooms in accommodation', # general demographic
                                'GOR', 'OA class 1', 'OA class 2', 'OA class 3',  # geographic
-                               'hhd_type_1', 'hhd_type_2', 'hhd_type_1_sex', 'hhd_type_2_sex', # analytical demographic
+                               'hhd_type_1', 'hhd_type_2', 'hhd_type_1_gender', 'hhd_type_2_gender', # analytical demographic
                                'income tax', 'Income anonymised', # income
                                'weight', 'no_people', 'OECD scale']] # analytical
     
     # add to count DF for summary
     for hhd_type in ['hhd_type_1', 'hhd_type_2']:
-        temp = person_data.groupby([hhd_type, hhd_type + '_sex']).count().iloc[:,:1].reset_index()
-        temp.columns = ['hhd_type', 'hhd_sex_composition', 'count'] 
+        temp = person_data.groupby([hhd_type, hhd_type + '_gender']).count().iloc[:,:1].reset_index()
+        temp.columns = ['hhd_type', 'hhd_gender_composition', 'count'] 
         temp['year'] = year; temp['group'] = hhd_type
         
         count = count.append(temp)
     
     # save to lcfs
-    lcfs[year] = person_data.join(spend_data)
+    lcfs[year] = person_data.join(energy_spend).join(spend_data)
 
-count = count.set_index(['group', 'hhd_type', 'hhd_sex_composition', 'year']).unstack(level='year').fillna(0)
+count = count.set_index(['group', 'hhd_type', 'hhd_gender_composition', 'year']).unstack(level='year').fillna(0)
 count.to_csv(output_path + 'outputs/detailed_survey_counts.csv')    
 
 ### CONTINUE HERE!!

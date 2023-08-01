@@ -51,7 +51,8 @@ for year in years:
 # save household results
 with pd.ExcelWriter(output_path + 'outputs/GHG_by_hhds.xlsx') as writer:
     for year in years:
-        hhd_ghg[year].to_excel(writer, sheet_name=str(year))
+        temp = hhd_ghg[year].drop('hhd_type_1', axis=1).rename(columns={'hhd_type_2':'hhd_type'})
+        temp.to_excel(writer, sheet_name=str(year))
 
 # calculate emissions from groups
 results = {}; results['hhd_type_1'] = pd.DataFrame(); results['hhd_type_2'] = pd.DataFrame()
@@ -63,8 +64,8 @@ for year in years:
     
     for hhd_type in ['hhd_type_1', 'hhd_type_2']:
         temp2 = cp.copy(temp)
-        temp2 = temp2.groupby([hhd_type, hhd_type + '_sex']).sum()
-        temp2.index.names = ['hhd_type', 'hhd_sex_composition']
+        temp2 = temp2.groupby([hhd_type, hhd_type + '_gender']).sum()
+        temp2.index.names = ['hhd_type', 'hhd_gender_composition']
         # correct number of people again
         temp2['no_people'] = temp2['pop'] / temp2['weight']
         temp2['OECD scale'] = temp2['pop_OECD'] / temp2['weight']
@@ -73,7 +74,7 @@ for year in years:
         # add identifying variable
         temp2['year'] = year
         # save relevant variable
-        keep = ['hhd_type', 'hhd_sex_composition', 'year', 'weight', 'no_people', 'OECD scale']
+        keep = ['hhd_type', 'hhd_gender_composition', 'year', 'weight', 'no_people', 'OECD scale']
         results[hhd_type] = results[hhd_type].append(temp2.reset_index()[keep + idx])
 
 # add count data
@@ -84,7 +85,7 @@ counts['year'] = counts['year'].astype(int)
 for hhd_type in ['hhd_type_1', 'hhd_type_2']:
     # add count data
     temp = counts.loc[counts['group'] == hhd_type]
-    results[hhd_type] = temp.merge(results[hhd_type], on =['hhd_type', 'hhd_sex_composition', 'year'])
+    results[hhd_type] = temp.merge(results[hhd_type], on =['hhd_type', 'hhd_gender_composition', 'year'])
 
 
 with pd.ExcelWriter(output_path + 'outputs/GHG_by_hhd_types.xlsx') as writer:

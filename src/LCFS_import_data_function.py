@@ -39,24 +39,24 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
             person_data[item] = dvper[var]
     person_data = person_data.apply(lambda x: pd.to_numeric(x, errors='coerce'))
     person_data['no_people'] = 1
-    # edit sex so they get added as list in one column - to keep individual information
-    person_data['sex_all'] = person_data['sex_all'].map({1:'M', 2:'F'})
-    person_data['sex_age_all'] = person_data['sex_all'] + '_' + person_data['age_all'].astype(str) # make variable combining sex and age
+    # edit gender so they get added as list in one column - to keep individual information
+    person_data['gender_all'] = person_data['gender_all'].map({1:'M', 2:'W'})
+    person_data['gender_age_all'] = person_data['gender_all'] + '_' + person_data['age_all'].astype(str) # make variable combining gender and age
     # make list vars
-    person_data['sex_all'] = [[x] for x in person_data['sex_all']] 
-    person_data['sex_age_all'] = [[x] for x in person_data['sex_age_all']] 
+    person_data['gender_all'] = [[x] for x in person_data['gender_all']] 
+    person_data['gender_age_all'] = [[x] for x in person_data['gender_age_all']] 
     # edit ages so they get added as list in one column - to keep individual ages, rather than get sum of all ages
     person_data['age_all'] = [[x] for x in person_data['age_all']] 
     # get sum
     person_data = person_data.sum(axis=0, level='case', skipna=True)
     # code is 0 if no partners or spouses in household. Therefore can make a binary, making all with sum 0 False (0) and all with sum >0 True (1)
     person_data.loc[person_data['partners_spouses'] > 0, 'partners_spouses'] = 1
-    # sort sex_all and age_all alphabetically to more easily compare between households
-    new_age = []; new_sex = []
+    # sort gender_all and age_all alphabetically to more easily compare between households
+    new_age = []; new_gender = []
     for i in range(len(person_data)):
-        sex = sorted(person_data['sex_all'].iloc[i]); new_sex.append(sex)
+        gender = sorted(person_data['gender_all'].iloc[i]); new_gender.append(gender)
         age = sorted(person_data['age_all'].iloc[i]); new_age.append(age)
-    person_data['sex_all'] = new_sex
+    person_data['gender_all'] = new_gender
     person_data['age_all'] = new_age
     # extract lowest and highest ages
     person_data['age_youngest'] = [x[0] for x in person_data['age_all']]
