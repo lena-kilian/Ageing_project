@@ -12,6 +12,7 @@ import pandas as pd
 import LCFS_import_data_function as lcfs_import
 from sys import platform
 import pathlib
+import copy as cp
 
 # set working directory
 # make different path depending on operating system
@@ -83,8 +84,10 @@ for year in years:
     person_data['hhd_type_2_gender'] = person_data['gender_all']
     person_data.loc[(person_data['hhd_type_2'] == 'Other'), 'hhd_type_2_gender'] = 'Other'
     
+    person_data['quarter'] = 'Q' + person_data['quarter'].astype(str).str[0]
+    
     # filter relevant columns
-    person_data = person_data[['ethnicity hrp', 'ethnicity partner hrp', 'age_all', 'gender_all',  'home_ownership', 'rooms in accommodation', # general demographic
+    person_data = person_data[['ethnicity hrp', 'ethnicity partner hrp', 'age_all', 'gender_all',  'home_ownership', 'rooms in accommodation', 'quarter', # general demographic
                                'GOR', 'OA class 1', 'OA class 2', 'OA class 3',  # geographic
                                'hhd_type_1', 'hhd_type_2', 'hhd_type_1_gender', 'hhd_type_2_gender', # analytical demographic
                                'income tax', 'Income anonymised', # income
@@ -92,7 +95,9 @@ for year in years:
     
     # add to count DF for summary
     for hhd_type in ['hhd_type_1', 'hhd_type_2']:
-        temp = person_data.groupby([hhd_type, hhd_type + '_gender']).count().iloc[:,:1].reset_index()
+        temp = cp.copy(person_data)
+        temp[hhd_type] = temp[hhd_type] + '_' + temp['quarter']
+        temp = temp.groupby([hhd_type, hhd_type + '_gender']).count().iloc[:,:1].reset_index()
         temp.columns = ['hhd_type', 'hhd_gender_composition', 'count'] 
         temp['year'] = year; temp['group'] = hhd_type
         
