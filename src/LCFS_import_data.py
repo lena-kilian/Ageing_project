@@ -12,7 +12,6 @@ import pandas as pd
 import LCFS_import_data_function as lcfs_import
 from sys import platform
 import pathlib
-import copy as cp
 
 # set working directory
 # make different path depending on operating system
@@ -47,66 +46,37 @@ for year in years:
     energy_spend.columns = ['spend_' + x + '_' + coicop_lookup_dict[x] for x in energy_spend.columns]
     # socio-emographic vaiables
     person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
-    # add SPH variable
-    person_data['single'] = (person_data['no_people'] == 1)
-    # add couple variable
-    person_data['couple'] = ((person_data['partners_spouses'] == 1) & (person_data['no_people'] == 2))
-    # add age variable
-    person_data['65+'] = ((person_data['age_youngest'] >= 65) & (person_data['age_youngest'] < 75)) # everyone is aged 65+, but at least one person in under 75
-    person_data['65-74'] = ((person_data['age_youngest'] >= 65) & (person_data['age_oldest'] < 75)) # everyone is aged 65-74
-    person_data['75+'] = (person_data['age_youngest'] >= 75) # everyone is aged 75+
     
-    # combine these variables
-    for status in ['single', 'couple']:
-        for age in ['65+', '65-74', '75+']:
-            person_data[status + '_' + age] = ((person_data[status] == True) & (person_data[age] == True))
-            person_data.loc[person_data[status + '_' + age] == True, status + '_' + age] = status + '_' + age
-            person_data.loc[person_data[status + '_' + age] == False, status + '_' + age] = ''
-            
-    person_data['hhd_type_1'] = person_data[['single_65-74', 'single_75+', 'couple_65-74', 'couple_75+']].sum(1)
-    person_data.loc[person_data['hhd_type_1'] == '', 'hhd_type_1'] = 'Other'
+    # add single/couple variable
+    person_data['household_type'] = 'Other'
+    person_data.loc[(person_data['no_people'] == 1), 'household_type'] = 'single'
+    person_data.loc[(person_data['no_people'] == 2) & (person_data['partners_spouses'] == 1), 'household_type'] = 'couple'
+    person_data.loc[(person_data['age_youngest'] < 65), 'household_type'] = 'Other' # make 'other' for households not studies
     
-    person_data['hhd_type_2'] = person_data[['single_65+', 'single_75+', 'couple_65+', 'couple_75+']].sum(1)
-    person_data.loc[person_data['hhd_type_2'] == '', 'hhd_type_2'] = 'Other'
+    # add age variable - everyone is aged 65+, but at least one person in under 75
+    person_data['age_group'] = 'Other'
+    person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_youngest'] < 75), 'age_group'] = '65+'
+    person_data.loc[(person_data['age_youngest'] >= 75), 'age_group'] = '75+'
+    person_data.loc[(person_data['no_people'] > 2), 'age_group'] = 'Other' # make 'other' for households not studied
     
-    # change gender_all column
-    temp = []
-    for x in person_data['gender_all']:
-        new = ''
-        for i in range(len(x)):
-            new += str(x[i]) + '_'
-        temp.append(new[:-1])
-            
-    person_data['gender_all'] = temp
-    person_data.loc[person_data['no_people'] == 2, 'gender_all'] = 'NA'
-    person_data['hhd_type_1_gender'] = person_data['gender_all']
-    person_data.loc[(person_data['hhd_type_1'] == 'Other'), 'hhd_type_1_gender'] = 'Other'
-    person_data['hhd_type_2_gender'] = person_data['gender_all']
-    person_data.loc[(person_data['hhd_type_2'] == 'Other'), 'hhd_type_2_gender'] = 'Other'
+    # room occupancy variable
+    person_data['rooms_per_person'] = person_data['rooms used solely by household'] / person_data['no_people']
     
-    person_data['quarter'] = 'Q' + person_data['quarter'].astype(str).str[0]
+    # add gender variable for single housheolds studied
+    person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
+    person_data.loc[(person_data['no_people'] > 1) | (person_data['age_youngest'] < 65), 'gender'] = 'Other' # make 'other' for households not studied
     
     # filter relevant columns
-    person_data = person_data[['ethnicity hrp', 'ethnicity partner hrp', 'age_all', 'gender_all',  'home_ownership', 'rooms in accommodation', 'quarter', # general demographic
-                               'GOR', 'OA class 1', 'OA class 2', 'OA class 3',  # geographic
-                               'hhd_type_1', 'hhd_type_2', 'hhd_type_1_gender', 'hhd_type_2_gender', # analytical demographic
+    person_data = person_data[['home_ownership', 'rooms in accommodation', # general demographic
+                               'GOR', 'OA class 3',  # geographic
+                               'household_type', 'age_group', 'gender', 'rooms_per_person', 'category of dwelling', # analytical demographic
                                'income tax', 'Income anonymised', # income
                                'weight', 'no_people', 'OECD scale']] # analytical
-    
-    # add to count DF for summary
-    for hhd_type in ['hhd_type_1', 'hhd_type_2']:
-        temp = cp.copy(person_data)
-        temp[hhd_type] = temp[hhd_type] + '_' + temp['quarter']
-        temp = temp.groupby([hhd_type, hhd_type + '_gender']).count().iloc[:,:1].reset_index()
-        temp.columns = ['hhd_type', 'hhd_gender_composition', 'count'] 
-        temp['year'] = year; temp['group'] = hhd_type
-        
-        count = count.append(temp)
     
     # save to lcfs
     lcfs[year] = person_data.join(energy_spend).join(spend_data)
 
-count = count.set_index(['group', 'hhd_type', 'hhd_gender_composition', 'year']).unstack(level='year').fillna(0)
+count = count.set_index(['household_type', 'age_group', 'gender', 'rooms_per_person', 'category of dwelling', 'year']).unstack(level='year').fillna(0)
 count.to_csv(output_path + 'outputs/detailed_survey_counts.csv')    
 
 ### CONTINUE HERE!!

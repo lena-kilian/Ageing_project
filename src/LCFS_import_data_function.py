@@ -40,7 +40,7 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     person_data = person_data.apply(lambda x: pd.to_numeric(x, errors='coerce'))
     person_data['no_people'] = 1
     # edit gender so they get added as list in one column - to keep individual information
-    person_data['gender_all'] = person_data['gender_all'].map({1:'M', 2:'W'})
+    person_data['gender_all'] = person_data['gender_all'].fillna(0).map({1:'M', 2:'W', 0:'NA'})
     person_data['gender_age_all'] = person_data['gender_all'] + '_' + person_data['age_all'].astype(str) # make variable combining gender and age
     # make list vars
     person_data['gender_all'] = [[x] for x in person_data['gender_all']] 
@@ -83,6 +83,11 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
         else:
             useful_data[desc] = dvhh[var.lower()]
     
+    # rename dwelling types
+    useful_data['category of dwelling'] = useful_data['category of dwelling'].fillna(0)\
+        .map({0:'Not recorded', 1:'Whole house bungalow-detached', 2:'Whole house bungalow semi-detached', 
+              3:'Whole house bungalow terrace', 4:'Purpose built flat maisonette', 5:'Part of house converted flat', 6:'Others'})
+    
     # multiply expenditure variables by weight to get UK total
     useful_data[exp_items] = useful_data[exp_items].apply(lambda x: x * useful_data['weight'])
     
@@ -94,6 +99,7 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     useful_data.loc[useful_data['home_ownership'].isin([5, 6, 7]) == True, 'home_ownership'] = 1
     
     useful_data['4.2.1.1.1'] = useful_data['4.2.1.1.1'] * useful_data['home_ownership']
+    
    
     return useful_data
 

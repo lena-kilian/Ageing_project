@@ -44,14 +44,11 @@ hhd_ghg, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
 idx = hhd_ghg[years[0]].columns.tolist()
 
 # calculate emission for individual households
-hhd_ghg2 = {}
 for year in years:
-    hhd_ghg[year] = hhd_ghg[year].fillna(0)
-    hhd_ghg2[year] = hhd_ghg[year].apply(lambda x: x/people[year]['weight'])
-    hhd_ghg2[year] = people[year].join(hhd_ghg2[year])
+    hhd_ghg[year] = hhd_ghg[year].fillna(0).apply(lambda x: x/people[year]['weight'])
+    hhd_ghg[year] = people[year].join(hhd_ghg[year])
     
 # save household results
 with pd.ExcelWriter(output_path + 'outputs/GHG_by_hhds.xlsx') as writer:
     for year in years:
-        temp = hhd_ghg2[year].drop('hhd_type_1', axis=1).rename(columns={'hhd_type_2':'hhd_type'})
-        temp.to_excel(writer, sheet_name=str(year))
+        hhd_ghg[year].to_excel(writer, sheet_name=str(year))
