@@ -84,9 +84,11 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
             useful_data[desc] = dvhh[var.lower()]
     
     # rename dwelling types
-    useful_data['category of dwelling'] = useful_data['category of dwelling'].fillna(0)\
-        .map({0:'Not recorded', 1:'Whole house bungalow-detached', 2:'Whole house bungalow semi-detached', 
-              3:'Whole house bungalow terrace', 4:'Purpose built flat maisonette', 5:'Part of house converted flat', 6:'Others'})
+    #dwelling_dict = {0:'Not recorded', 1:'Whole house bungalow-detached', 2:'Whole house bungalow semi-detached', 
+    #                 3:'Whole house bungalow terrace', 4:'Purpose built flat maisonette', 5:'Part of house converted flat', 6:'Others'}
+    dwelling_dict = {0:'Not recorded', 1:'Detached house', 2:'Semi-detached or terrace house', 
+                     3:'Semi-detached or terrace house', 4:'Apartment', 5:'Apartment', 6:'Other'}
+    useful_data['category of dwelling'] = useful_data['category of dwelling'].fillna(0).map(dwelling_dict)
     
     # multiply expenditure variables by weight to get UK total
     useful_data[exp_items] = useful_data[exp_items].apply(lambda x: x * useful_data['weight'])

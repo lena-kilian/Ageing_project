@@ -17,24 +17,30 @@ import matplotlib.pyplot as plt
 
 output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
-results = pd.read_excel(output_path + 'outputs/GHG_by_hhd_types.xlsx', sheet_name=None)
+results = pd.read_excel(output_path + 'outputs/GHG_by_hhds.xlsx', sheet_name=None, index_col='case')
 
-# aggregate to Coicop 2
+# aggregate to Coicop 1 or 2
 new_cols = results[list(results.keys())[0]].loc[:,'1.1.1 Bread and cereals':].columns.tolist()
 new_cols = dict(zip(new_cols, [x.split('.')[0] for x in new_cols])) # [x.split('.')[0] + '.' + x.replace(' ', '.').split('.')[1] for x in new_cols]
 
+cats = []
+for item in new_cols.values():
+    if item not in cats:
+        cats.append(item)
+
 aggregated = pd.DataFrame()
-for hhd_type in list(results.keys()):
-    temp = results[hhd_type].rename(columns=new_cols).sum(axis=1, level=0)
+for year in list(results.keys()):
+    temp = results[year].rename(columns=new_cols).sum(axis=1, level=0)\
+        .set_index(['household_comp', 'age_group', 'gender', 'dwelling_type'])
+    temp['pop_scaled'] = temp['weight'] * temp['OECD scale']
     
-    for year in temp[['year']].drop_duplicates()['year'].tolist():
-        temp2 = temp.loc[(temp['year'] == year) & (temp['count'] > 20)]
-        temp2['hhd'] = temp2['hhd_type'] + '__' + temp['hhd_sex_composition'] + '__' + temp['year'].astype(str)
-        temp2 = temp2.drop(['Unnamed: 0', 'hhd_type', 'hhd_sex_composition', 'year'], axis=1)\
-            .set_index(['group', 'hhd', 'count', 'weight', 'no_people', 'OECD scale']).stack().reset_index()\
-                .rename(columns={'level_6':'CCP2', 0:'GHG'})
-        
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15,5))
-        sns.barplot(ax=ax, data=temp2, x='CCP2', y='GHG', hue='hhd')
-        plt.xticks(rotation=90)
-        plt.show()
+    temp[cats + ['rooms_per_person']] = temp[cats + ['rooms_per_person']].apply(lambda x: x*temp['pop_scaled'])
+    temp['count'] = 1
+    temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'category of dwelling'])\
+        [['pop_scaled', 'rooms_per_person', 'count'] + cats]
+    
+    
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15,5))
+    sns.barplot(ax=ax, data=temp, x='CCP2', y='GHG', hue='hhd')
+    plt.xticks(rotation=90)
+    plt.show()

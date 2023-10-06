@@ -12,7 +12,6 @@ import pandas as pd
 import estimate_emissions_main_function as estimate_emissions
 from sys import platform
 import pathlib
-import copy as cp
 
 # set working directory
 # make different path depending on operating system
@@ -35,7 +34,7 @@ lcfs = {year: pd.read_csv(output_path + 'outputs/LCFS/hhdspend_' + str(year) + '
 people = {}; hhdspend={}
 for year in years:
     people[year] = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
-    hhdspend[year] = lcfs[year].loc[:,'1.1.1.1.1':'12.7.1.1.6'].astype(float).apply(lambda x: x*lcfs[year]['weight'])
+    hhdspend[year] = lcfs[year].loc[:,'1.1.1.1.1':'12.7.1.1.6'].astype(float) # already multiplied by weight
   
 # calculate emissions
 hhd_ghg, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
