@@ -32,12 +32,13 @@ aggregated = pd.DataFrame()
 for year in list(results.keys()):
     temp = results[year].rename(columns=new_cols).sum(axis=1, level=0)\
         .set_index(['household_comp', 'age_group', 'gender', 'dwelling_type'])
-    temp['pop_scaled'] = temp['weight'] * temp['OECD scale']
+    temp['pop'] = temp['weight'] * temp['no_people']
     
-    temp[cats + ['rooms_per_person']] = temp[cats + ['rooms_per_person']].apply(lambda x: x*temp['pop_scaled'])
+    temp[cats + ['rooms_per_person', '']] = temp[cats + ['rooms_per_person']].apply(lambda x: x*temp['pop'])
     temp['count'] = 1
-    temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'category of dwelling'])\
-        [['pop_scaled', 'rooms_per_person', 'count'] + cats]
+    temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'dwelling_type'])\
+        [['pop', 'rooms_per_person', 'count'] + cats]
+    temp[cats + ['rooms_per_person']] = temp[cats + ['rooms_per_person']].apply(lambda x: x/temp['pop'])
     
     
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15,5))
