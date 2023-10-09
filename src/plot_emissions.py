@@ -44,14 +44,48 @@ for item in results[list(results.keys())[0]].columns:
 aggregated = pd.DataFrame()
 for year in range(2005, 2020):
     temp = results[str(year)].rename(columns=cat_dict).sum(axis=1, level=0).drop('Other_ghg', axis=1)\
+        .set_index(['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate'])
+    temp['pop'] = temp['weight'] * temp['OECD scale']
+    
+    temp[cats] = temp[cats].apply(lambda x: x*temp['pop'])
+    temp['count'] = 1
+    temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate'])\
+        [['pop', 'occupancy_rate', 'count'] + cats]
+    temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
+
+    temp = temp.reset_index()
+    
+    temp.loc[temp['gender'] == 'Other', 'gender'] = ''
+    temp['household_comp'] = temp['household_comp'] + '_' + temp['gender']
+    
+    temp['None'] = '.'
+    
+    temp2 = cp.copy(temp)
+    
+    for item in ['None', 'household_comp', 'dwelling_type', 'occupancy_rate']:
+        temp = cp.copy(temp2)
+        temp['household_type'] = temp['age_group'] + '_' + temp[item] 
+        temp = temp.set_index('household_type')[cats].stack().reset_index().rename(columns={'level_1':'product', 0:'ghg'})
+        
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15,5))
+        sns.barplot(ax=ax, data=temp.sort_values(['household_type', 'product']), 
+                                                  x='product', y='ghg', hue='household_type', errorbar=None)
+        plt.xticks(rotation=90); plt.legend(bbox_to_anchor=(1,1))
+        plt.show()
+        
+'''      
+
+aggregated = pd.DataFrame()
+for year in range(2005, 2020):
+    temp = results[str(year)].rename(columns=cat_dict).sum(axis=1, level=0).drop('Other_ghg', axis=1)\
         .set_index(['household_comp', 'age_group', 'gender', 'dwelling_type'])
     temp['pop'] = temp['weight'] * temp['OECD scale']
     
-    temp[cats + ['rooms_per_person']] = temp[cats + ['rooms_per_person']].apply(lambda x: x*temp['pop'])
+    temp[cats] = temp[cats].apply(lambda x: x*temp['pop'])
     temp['count'] = 1
     temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'dwelling_type'])\
-        [['pop', 'rooms_per_person', 'count'] + cats]
-    temp[cats + ['rooms_per_person']] = temp[cats + ['rooms_per_person']].apply(lambda x: x/temp['pop'])
+        [['pop', 'count'] + cats]
+    temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
 
     temp = temp.reset_index()
     
@@ -65,10 +99,11 @@ for year in range(2005, 2020):
     for item in ['None', 'household_comp', 'dwelling_type']:
         temp = cp.copy(temp2)
         temp['household_type'] = temp['age_group'] + '_' + temp[item] 
-        temp = temp.set_index('household_type')[cats + ['rooms_per_person']].stack().reset_index().rename(columns={'level_1':'product', 0:'ghg'})
+        temp = temp.set_index('household_type')[cats].stack().reset_index().rename(columns={'level_1':'product', 0:'ghg'})
         
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15,5))
         sns.barplot(ax=ax, data=temp.sort_values(['household_type', 'product']), 
                                                   x='product', y='ghg', hue='household_type', errorbar=None)
         plt.xticks(rotation=90); plt.legend(bbox_to_anchor=(1,1))
         plt.show()
+'''

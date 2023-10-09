@@ -12,6 +12,8 @@ import pandas as pd
 import LCFS_import_data_function as lcfs_import
 from sys import platform
 import pathlib
+import math
+import numpy as np
 
 # set working directory
 # make different path depending on operating system
@@ -61,7 +63,57 @@ for year in years:
     person_data.loc[(person_data['no_people'] > 2), 'age_group'] = 'Other' # make 'other' for households not studied
     
     # room occupancy variable
-    person_data['rooms_per_person'] = person_data['rooms used solely by household'] / person_data['no_people']
+    # use EU definition https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Under-occupied_dwelling
+    """
+    For statistical purposes, a dwelling is defined as under-occupied if the household living in it has at its disposal more than 
+    the minimum number of rooms considered adequate, and equal to:
+
+    one room for the household;
+    one room per couple in the household;
+    one room for each single person aged 18 or more;
+    one room per pair of single people of the same gender between 12 and 17 years of age;
+    one room for each single person between 12 and 17 years of age and not included in the previous category;
+    one room per pair of children under 12 years of age.
+    """
+    temp = pd.DataFrame(person_data['gender_age_all'].to_list()); temp.index = person_data.index
+    temp = temp.stack().reset_index().rename(columns={0:'gender_age'}).drop('level_1', axis=1)
+    temp['gender'] = [x.split('_')[0] for x in temp['gender_age']]
+    age = []
+    for x in temp['gender_age']:
+        a = str(x).split('_')[1]
+        if a == 'nan':
+            age.append(np.nan)
+        else:
+            age.append(int(float(a)))
+    temp['age'] = age
+    # split variables
+    temp['age_group'] = '0-11'
+    temp.loc[(temp['age'] >= 12) & (temp['age'] < 18), 'age_group'] = '12-17'
+    temp.loc[(temp['age'] >= 18), 'age_group'] = '18+'
+    # use NA for gender where it does not matter
+    temp.loc[(temp['age_group'] != '12-17'), 'gender'] = 'NA'
+    # count people
+    temp['count'] = 1
+    temp = temp.groupby(['case', 'gender', 'age_group']).sum()[['count']].unstack(['age_group', 'gender']).fillna(0).droplevel(axis=1, level=0)
+    # account for minors sharing rooms
+    for item in [('0-11', 'NA'), ('12-17',  'M'), ('12-17',  'W')]:
+        temp[item] = [math.ceil(x/2) for x in temp[item]]
+    temp['rooms_minors'] = temp[[('0-11', 'NA'), ('12-17',  'M'), ('12-17',  'W')]].sum(1)
+    # account for couples sharing rooms
+    temp = temp.join(person_data[['partners_spouses']])
+    temp['rooms_adults'] = temp[('18+', 'NA')]
+    temp.loc[temp['partners_spouses'] == 1, 'rooms_adults'] = temp['rooms_adults'] - 1
+    # account for communal space
+    temp['rooms_communal'] = 1
+    # compare to actual number of rooms available for households
+    temp = temp[['rooms_communal', 'rooms_adults', ('rooms_minors', '')]].join(person_data[['rooms used solely by household']])
+    # define occupancy
+    temp['occupancy'] = temp['rooms used solely by household'] - temp[['rooms_communal', 'rooms_adults', ('rooms_minors', '')]].sum(1)
+    temp['occupancy_rate'] = 'Adequately_occupied'
+    temp.loc[temp['occupancy'] < 0, 'occupancy_rate'] = 'Over_occupied'
+    temp.loc[temp['occupancy'] > 0, 'occupancy_rate'] = 'Under_occupied'
+    # add to person_data
+    person_data = person_data.join(temp[['occupancy_rate']])
     
     # add gender variable for single housheolds studied
     person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
@@ -73,7 +125,7 @@ for year in years:
     
     # filter relevant columns
     person_data = person_data[['GOR', 'OA class 3',  # geographic
-                               'household_comp', 'age_group', 'gender', 'rooms_per_person', 'dwelling_type', # analytical demographic
+                               'household_comp', 'age_group', 'gender', 'occupancy_rate', 'dwelling_type', # analytical demographic
                                'income tax', 'Income anonymised', 'home_ownership', 'rooms in accommodation', # general demographic
                                'weight', 'no_people', 'OECD scale']] # analytical
     
