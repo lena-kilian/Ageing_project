@@ -35,11 +35,13 @@ years = list(range(2001, 2020))
 coicop_lookup = pd.read_csv(output_path + 'inputs/LCF_variables.csv', header = 0).fillna(0)
 coicop_lookup_dict = dict(zip(coicop_lookup['Coicop_3'], coicop_lookup['Desc_full']))
 
+lcfs = {}
 for year in years:
     print(year)
-    lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/')
+    lcfs[year] = lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/');
+    print(year)
     
-lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
+#lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
 
 # add household composition for households of interest
 for year in years:
