@@ -12,8 +12,8 @@ import pandas as pd
 import LCFS_import_data_function as lcfs_import
 from sys import platform
 import pathlib
-import math
-import numpy as np
+#import math
+#import numpy as np
 
 # set working directory
 # make different path depending on operating system
@@ -35,6 +35,10 @@ years = list(range(2001, 2020))
 coicop_lookup = pd.read_csv(output_path + 'inputs/LCF_variables.csv', header = 0).fillna(0)
 coicop_lookup_dict = dict(zip(coicop_lookup['Coicop_3'], coicop_lookup['Desc_full']))
 
+for year in years:
+    print(year)
+    lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/')
+    
 lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
 
 # add household composition for households of interest
@@ -63,6 +67,9 @@ for year in years:
     person_data.loc[(person_data['no_people'] > 2), 'age_group'] = 'Other' # make 'other' for households not studied
     
     # room occupancy variable
+    person_data['occupancy_rate'] = 'Adequately/Over_occupied'
+    person_data.loc[person_data['rooms used solely by household'] - person_data['no_people'] > 2, 'occupancy_rate'] = 'Under_occupied'    
+    '''
     # use EU definition https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Under-occupied_dwelling
     """
     For statistical purposes, a dwelling is defined as under-occupied if the household living in it has at its disposal more than 
@@ -114,6 +121,7 @@ for year in years:
     temp.loc[temp['occupancy'] > 0, 'occupancy_rate'] = 'Under_occupied'
     # add to person_data
     person_data = person_data.join(temp[['occupancy_rate']])
+    '''
     
     # add gender variable for single housheolds studied
     person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
@@ -126,7 +134,7 @@ for year in years:
     # filter relevant columns
     person_data = person_data[['GOR', 'OA class 3',  # geographic
                                'household_comp', 'age_group', 'gender', 'occupancy_rate', 'dwelling_type', # analytical demographic
-                               'income tax', 'Income anonymised', 'home_ownership', 'rooms in accommodation', # general demographic
+                               'income tax', 'Income anonymised', 'home_ownership', 'rooms in accommodation', 'rooms used solely by household', # general demographic
                                'weight', 'no_people', 'OECD scale']] # analytical
     
     # save data - this is already multiplied by weight

@@ -9,34 +9,76 @@ Functions to attach the LCFS to carbon emissions, based on code by Anne Owen
 """
 
 import pandas as pd
+import os
 
 
 def import_lcfs(year, coicop_lookup, lcf_filepath):
     
     yr = str(year)
     
-    dvhh_file = coicop_lookup.loc[coicop_lookup['Desc_full'] == 'dvhh', yr].tolist()[0]
-    dvper_file = coicop_lookup.loc[coicop_lookup['Desc_full'] == 'dvper', yr].tolist()[0]
+    file_list = 'C:/Users/geolki/OneDrive - University of Leeds/PhD/PhD/Analysis/data/raw/LCFS/' + str(yr) + '/tab'
+    files = {}
+    for item in ['dvper', 'dvhh', 'rawhh', 'rawper']:
+        for file in os.listdir(file_list):
+            if item in file and item in coicop_lookup.loc[coicop_lookup[yr] != 0]['Dataset'].tolist():
+                files[item] = str(yr) + '/tab/' + file
     
-    dvhh = pd.read_csv(lcf_filepath + dvhh_file, sep='\t')
-    dvper = pd.read_csv(lcf_filepath + dvper_file, sep='\t')
-    
-    dvhh.columns = [x.lower() for x in dvhh.columns]
-    dvper.columns = [x.lower() for x in dvper.columns]
-    
-    dvhh = dvhh.set_index('case')
-    dvper = dvper.set_index(['case', 'person'])
-    
-    # import person data
-    dvper_lookup = coicop_lookup.loc[coicop_lookup['Dataset'] == 'dvper'].set_index('Desc_full')
-    
-    person_data = pd.DataFrame(index=dvper.index)
-    for item in dvper_lookup.index.tolist():
-        var = dvper_lookup.loc[item, yr]
-        if var == 0:
-            person_data[item] = 0
+    data = {}
+    person_dict = {}; household_dict = {}
+    for dataset in list(files.keys()):
+
+        data[dataset] = pd.read_csv(lcf_filepath + files[dataset], sep='\t', index_col=None,  encoding='utf8')\
+            .rename(columns={'case1':'case'})
+        data[dataset].columns = [x.lower() for x in data[dataset].columns]
+        
+        if 'hh' in dataset:
+            data[dataset] = data[dataset].set_index('case')
+            
+            # import household data
+            lookup = coicop_lookup.loc[coicop_lookup['Dataset'] == dataset].set_index('Coicop_full')
+            
+            useful_data = pd.DataFrame(index=data[dataset].index)
+
+            exp_items = [] # collect these to multiply by weight later
+            for item in lookup.index.tolist():
+                if item[0] == '0':
+                    desc = lookup.loc[item, 'Desc_full']
+                else:
+                    desc = item
+                    exp_items.append(desc)
+                
+                var = lookup.loc[item, yr]
+                if var == 0 or var == '0':
+                    useful_data[desc] = 0
+                elif var[:3] == '(-)':
+                    useful_data[desc] = -1*data[dataset][var[3:].lower()]
+                else:
+                    useful_data[desc] = data[dataset][var.lower()]
+            
+            household_dict[dataset] = useful_data
+            
         else:
-            person_data[item] = dvper[var]
+            data[dataset] = data[dataset].set_index(['case', 'person'])
+    
+            # import person data
+            lookup = coicop_lookup.loc[coicop_lookup['Dataset'] == dataset].set_index('Desc_full')
+        
+            person_data = pd.DataFrame(index=data[dataset].index)
+            for item in lookup.index.tolist():
+                var = lookup.loc[item, yr]
+                if var == 0:
+                    person_data[item] = 0
+                else:
+                    person_data[item] = data[dataset][var]
+            person_dict[dataset] = person_data
+    
+    # clean up person variables
+    if len(person_dict.keys()) > 1:
+        temp = list(person_dict.keys())
+        person_data = person_dict[temp[0]]
+        for item in temp[1:]:
+            person_data = person_data.join(person_dict[item])
+                                 
     person_data = person_data.apply(lambda x: pd.to_numeric(x, errors='coerce'))
     person_data['no_people'] = 1
     # edit gender so they get added as list in one column - to keep individual information
@@ -61,28 +103,17 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     # extract lowest and highest ages
     person_data['age_youngest'] = [x[0] for x in person_data['age_all']]
     person_data['age_oldest'] = [x[-1] for x in person_data['age_all']]
-    
-    # import househols data
-    dvhh_lookup = coicop_lookup.loc[coicop_lookup['Dataset'] == 'dvhh'].set_index('Coicop_full')
-    
-    useful_data = pd.DataFrame(index=dvhh.index)
-
-    exp_items = [] # collect these to multiply by weight later
-    for item in dvhh_lookup.index.tolist():
-        if item[0] == '0':
-            desc = dvhh_lookup.loc[item, 'Desc_full']
-        else:
-            desc = item
-            exp_items.append(desc)
         
-        var = dvhh_lookup.loc[item, yr]
-        if var == 0 or var == '0':
-            useful_data[desc] = 0
-        elif var[:3] == '(-)':
-            useful_data[desc] = -1*dvhh[var[3:].lower()]
-        else:
-            useful_data[desc] = dvhh[var.lower()]
-    
+    # clean up household_variables
+    if len(household_dict.keys()) > 1:
+        temp = list(household_dict.keys())
+        useful_data = household_dict[temp[0]]
+        order = useful_data.columns.tolist()
+        for item in temp[1:]:
+            useful_data = useful_data.join(household_dict[item])
+            order = household_dict[item].columns.tolist() + order
+        useful_data = useful_data[order]
+   
     # rename dwelling types
     #dwelling_dict = {0:'Not recorded', 1:'Whole house bungalow-detached', 2:'Whole house bungalow semi-detached', 
     #                 3:'Whole house bungalow terrace', 4:'Purpose built flat maisonette', 5:'Part of house converted flat', 6:'Others'}
