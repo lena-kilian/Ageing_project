@@ -101,7 +101,7 @@ for year in range(2005, 2020):
         #plt.show()
         
     grouping_var = 'household_comp'
-    for item in ['gender', 'dwelling_type', 'occupancy_rate', 'None']:
+    for item in ['gender', 'dwelling_type', 'occupancy_rate', 'disability_care', 'disability_mobility', 'None']:
         temp = cp.copy(temp2)
         temp.loc[temp['household_comp'] == 'Other_Other', item] = 'NA'
         temp[cats] = temp[cats].apply(lambda x: x*temp['pop'])
@@ -122,7 +122,9 @@ for year in range(2005, 2020):
             plt.title(str(year) + ' ' + grouping_var + ' ' + item)
             plt.show()
 aggregated_data = aggregated_data[['grouping', 'year', 'household_comp', 'gender', 'dwelling_type', 
+                                   'disability_care', 'disability_mobility',
                                    'occupancy_rate', 'pop', 'count', 'count_pct'] + cats].fillna('All')
+check = aggregated_data.drop_duplicates()
 
 
 for group in aggregated_data[['grouping']].drop_duplicates()['grouping']:

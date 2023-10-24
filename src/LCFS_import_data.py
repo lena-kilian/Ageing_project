@@ -133,12 +133,24 @@ for year in years:
     person_data['dwelling_type'] = person_data['category of dwelling']
     person_data.loc[(person_data['household_comp'] == 'Other'), 'dwelling_type'] = 'Other'
     
-    # add disability allowance variable for households studied
-    person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
+    if year >= 2013:
+        # add disability allowance variable for households studied
+        person_data['disability_mobility'] = False
+        person_data.loc[(person_data['disability allowance type'] == 2) | (person_data['disability allowance type'] == 3), 'disability_mobility'] = True
+        
+        person_data['disability_care'] = False
+        person_data.loc[(person_data['disability allowance type'] == 1) | (person_data['disability allowance type'] == 3), 'disability_care'] = True
+       
+        person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_care'] = False
+        person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_mobility'] = False
+    else:
+        person_data['disability_care'] = 'NA'
+        person_data['disability_mobility'] = 'NA'
+        
     
     # filter relevant columns
     person_data = person_data[['GOR', 'OA class 3',  # geographic
-                               'household_comp', 'age_group', 'gender', 'occupancy_rate', 'dwelling_type', # analytical demographic
+                               'household_comp', 'age_group', 'gender', 'occupancy_rate', 'dwelling_type', 'disability_care', 'disability_mobility', # analytical demographic
                                'income tax', 'Income anonymised', 'home_ownership', 'rooms in accommodation', 'rooms used solely by household', # general demographic
                                'weight', 'no_people', 'OECD scale']] # analytical
     
