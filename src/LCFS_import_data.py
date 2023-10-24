@@ -125,13 +125,16 @@ for year in years:
     person_data = person_data.join(temp[['occupancy_rate']])
     '''
     
-    # add gender variable for single housheolds studied
+    # add gender variable for single households studied
     person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
     person_data.loc[(person_data['no_people'] > 1) | (person_data['age_youngest'] < 65), 'gender'] = 'Other' # make 'other' for households not studied
     
     # add 'other' to not studied groups for dwelling
     person_data['dwelling_type'] = person_data['category of dwelling']
     person_data.loc[(person_data['household_comp'] == 'Other'), 'dwelling_type'] = 'Other'
+    
+    # add disability allowance variable for households studied
+    person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
     
     # filter relevant columns
     person_data = person_data[['GOR', 'OA class 3',  # geographic
