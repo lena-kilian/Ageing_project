@@ -62,12 +62,12 @@ aggregated_data = pd.DataFrame()
 for year in range(2005, 2020):
     temp = results[str(year)].rename(columns=cat_dict).sum(axis=1, level=0).drop('Other_ghg', axis=1)
     #temp.loc[temp['occupancy_rate'] != 'Under_occupied', 'occupancy_rate'] = 'Adequately/Over_occupied'
-    temp = temp.set_index(['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate'])
+    temp = temp.set_index(['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate',  'disability_care', 'disability_mobility'])
     temp['pop'] = temp['weight'] * temp['OECD scale']
     
     temp[cats] = temp[cats].apply(lambda x: x*temp['weight'])
     temp['count'] = 1
-    temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate'])\
+    temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate',  'disability_care', 'disability_mobility'])\
         [['pop', 'count'] + cats]
     temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
 
@@ -83,7 +83,7 @@ for year in range(2005, 2020):
     
     #aggregated_data = aggregated_data.append(temp2)
     
-    for item in ['gender', 'household_comp', 'dwelling_type', 'occupancy_rate', 'None']:
+    for item in ['gender', 'household_comp', 'dwelling_type', 'occupancy_rate', 'disability_care', 'disability_mobility', 'None']:
         temp = cp.copy(temp2)
         temp[cats] = temp[cats].apply(lambda x: x*temp['pop'])
         temp = temp.groupby(item).sum().reset_index()
@@ -111,7 +111,8 @@ for year in range(2005, 2020):
         temp['year'] = year
         temp['count_pct'] = temp['count'] / temp['count'].sum() * 100
         aggregated_data = aggregated_data.append(temp)
-    
+        
+        '''
         temp['group'] = temp[grouping_var] + '_' + temp[item]
         temp = temp.set_index(['group'])[cats].stack().reset_index().rename(columns={'level_1':'product', 0:'ghg'})
         
@@ -121,12 +122,13 @@ for year in range(2005, 2020):
             plt.xticks(rotation=90); plt.legend(bbox_to_anchor=(1,1))
             plt.title(str(year) + ' ' + grouping_var + ' ' + item)
             plt.show()
+        '''
 aggregated_data = aggregated_data[['grouping', 'year', 'household_comp', 'gender', 'dwelling_type', 
                                    'disability_care', 'disability_mobility',
-                                   'occupancy_rate', 'pop', 'count', 'count_pct'] + cats].fillna('All')
-check = aggregated_data.drop_duplicates()
+                                   'occupancy_rate', 'pop', 'count', 'count_pct'] + cats].fillna('All')\
+    .drop_duplicates()
 
-
+'''
 for group in aggregated_data[['grouping']].drop_duplicates()['grouping']:
     temp = aggregated_data.loc[aggregated_data['grouping'] == group]
     temp['None'] = ''
@@ -167,4 +169,4 @@ for group in aggregated_data[['grouping']].drop_duplicates()['grouping']:
     
     axs[0, len(cats)-1].legend(bbox_to_anchor=(1, 1))
     plt.show()
-    
+'''

@@ -135,14 +135,14 @@ for year in years:
     
     if year >= 2013:
         # add disability allowance variable for households studied
-        person_data['disability_mobility'] = False
-        person_data.loc[(person_data['disability allowance type'] == 2) | (person_data['disability allowance type'] == 3), 'disability_mobility'] = True
+        person_data['disability_mobility'] = 'No'
+        person_data.loc[(person_data['disability allowance type'] == 2) | (person_data['disability allowance type'] == 3), 'disability_mobility'] = 'Yes'
         
-        person_data['disability_care'] = False
-        person_data.loc[(person_data['disability allowance type'] == 1) | (person_data['disability allowance type'] == 3), 'disability_care'] = True
+        person_data['disability_care'] = 'No'
+        person_data.loc[(person_data['disability allowance type'] == 1) | (person_data['disability allowance type'] == 3), 'disability_care'] = 'Yes'
        
-        person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_care'] = False
-        person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_mobility'] = False
+        person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_care'] = 'Other'
+        person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_mobility'] = 'Other'
     else:
         person_data['disability_care'] = 'NA'
         person_data['disability_mobility'] = 'NA'
