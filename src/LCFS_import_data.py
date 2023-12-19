@@ -47,12 +47,6 @@ for year in years:
 for year in years:
     spend_data = lcfs[year].loc[:,'1.1.1.1.1':]
     
-    # # extract spend for fuel poverty indicator
-    # energy_spend = spend_data.loc[:,'4.5.1.1.1.1':'4.5.5.1.1']
-    # # convert spend to coicop 3
-    # energy_spend = energy_spend.rename(columns = dict(zip(coicop_lookup['Coicop_full'], coicop_lookup['Coicop_3']))).sum(axis=1, level=0)
-    # energy_spend.columns = ['spend_' + x + '_' + coicop_lookup_dict[x] for x in energy_spend.columns]
-    
     # socio-emographic vaiables
     person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
     
@@ -70,17 +64,6 @@ for year in years:
     person_data['occupancy_rate'] = 'Adequately/Over_occupied'
     person_data.loc[person_data['rooms used solely by household'] - person_data['no_people'] > 2, 'occupancy_rate'] = 'Under_occupied'    
     # use EU definition https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Under-occupied_dwelling
-    """
-    For statistical purposes, a dwelling is defined as under-occupied if the household living in it has at its disposal more than 
-    the minimum number of rooms considered adequate, and equal to:
-
-    one room for the household;
-    one room per couple in the household;
-    one room for each single person aged 18 or more;
-    one room per pair of single people of the same gender between 12 and 17 years of age;
-    one room for each single person between 12 and 17 years of age and not included in the previous category;
-    one room per pair of children under 12 years of age.
-    """
     
     # add gender variable for single households studied
     person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
