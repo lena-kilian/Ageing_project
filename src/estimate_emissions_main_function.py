@@ -246,7 +246,7 @@ def makefoot(S,U,Y,stressor,years):
 def make_footprint(hhdspend, wd):
     
     """
-    Calculate consumption-based household GHG emissions for MSOAs or LSOAs from the LCFS (emissios calculated in LCFS_aggregation_combined_years.py) and the UKMRIO 2020
+    Calculate consumption-based household co2 emissions for MSOAs or LSOAs from the LCFS (emissios calculated in LCFS_aggregation_combined_years.py) and the UKMRIO 2020
     """
 
 #############
@@ -272,7 +272,7 @@ def make_footprint(hhdspend, wd):
     
     # Load UKMRIO and calculate means for UKMRIO data
     ukmrio = {}; #means = {}
-    for data in ['ghg', 'uk_ghg_direct', 'S', 'U', 'Y']:
+    for data in ['co2', 'uk_co2_direct', 'S', 'U', 'Y']:
         ukmrio[data] = pickle.load(open(wd + data + '.p', "rb" ))
         
     ukmrio['Y'] = convert43to41(ukmrio['Y'], concs_dict, years)
@@ -288,28 +288,28 @@ def make_footprint(hhdspend, wd):
 
     ylcf_props, ylcfs_total = make_ylcf_props(hhdspend, list(hhdspend.keys()), concs_dict, '456_to_105')
 
-    COICOP_ghg = makefoot(ukmrio['S'], ukmrio['U'], newY, ukmrio['ghg'], list(hhdspend.keys()))
+    COICOP_co2 = makefoot(ukmrio['S'], ukmrio['U'], newY, ukmrio['co2'], list(hhdspend.keys()))
     
-    Total_ghg = {}; multipliers = {}
+    Total_co2 = {}; multipliers = {}
     for year in list(hhdspend.keys()):
         # add index
         new_index = concs_dict['456_to_105'].columns.tolist() + ukmrio['Y'][year].loc[:,'13 Non-profit instns serving households':].columns.tolist()
-        COICOP_ghg[year] = df(COICOP_ghg[year], index=new_index, columns=['total_ghg'])
+        COICOP_co2[year] = df(COICOP_co2[year], index=new_index, columns=['total_co2'])
         # add direct emissions
         for item in new_index:
             if '4.5.2' in item:
                 gas_direct = item
             if '7.2.2' in item:
                 travel_direct = item
-        COICOP_ghg[year].loc[gas_direct, 'total_ghg'] += ukmrio['uk_ghg_direct'][year]['Consumer expenditure - not travel']
-        COICOP_ghg[year].loc[travel_direct, 'total_ghg'] += ukmrio['uk_ghg_direct'][year]['Consumer expenditure - travel']
+        COICOP_co2[year].loc[gas_direct, 'total_co2'] += ukmrio['uk_co2_direct'][year]['Consumer expenditure - not travel']
+        COICOP_co2[year].loc[travel_direct, 'total_co2'] += ukmrio['uk_co2_direct'][year]['Consumer expenditure - travel']
         
         # multipliers tCO2e/GBP 
-        multipliers[year] = COICOP_ghg[year].join(df(ylcfs_total[year], columns=['total_spend']), how='right')
-        multipliers[year]['multipliers'] = multipliers[year]['total_ghg'] / multipliers[year]['total_spend']
+        multipliers[year] = COICOP_co2[year].join(df(ylcfs_total[year], columns=['total_spend']), how='right')
+        multipliers[year]['multipliers'] = multipliers[year]['total_co2'] / multipliers[year]['total_spend']
     
-        # this gives GHG emissions for the groups, break down to per capita emissions
-        temp = ylcf_props[year].T.apply(lambda x: x*COICOP_ghg[year]['total_ghg'])
-        Total_ghg[year] = temp.T[ylcf_props[year].columns.tolist()]
+        # this gives co2 emissions for the groups, break down to per capita emissions
+        temp = ylcf_props[year].T.apply(lambda x: x*COICOP_co2[year]['total_co2'])
+        Total_co2[year] = temp.T[ylcf_props[year].columns.tolist()]
     
-    return(Total_ghg, multipliers)
+    return(Total_co2, multipliers)

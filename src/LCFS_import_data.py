@@ -29,7 +29,7 @@ else:
     
 output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
-years = list(range(2001, 2020))
+years = list(range(2017, 2020))
 
 # Load LCFS data
 coicop_lookup = pd.read_csv(output_path + 'inputs/LCF_variables.csv', header = 0).fillna(0)
@@ -60,18 +60,15 @@ for year in years:
     person_data['household_comp'] = 'Other'
     person_data.loc[(person_data['no_people'] == 1), 'household_comp'] = 'single'
     person_data.loc[(person_data['no_people'] == 2) & (person_data['partners_spouses'] == 1), 'household_comp'] = 'couple'
-    person_data.loc[(person_data['age_youngest'] < 65), 'household_comp'] = 'Other' # make 'other' for households not studies
     
     # add age variable - everyone is aged 65+, but at least one person in under 75
     person_data['age_group'] = 'Other'
-    person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_youngest'] < 75), 'age_group'] = '65+'
-    person_data.loc[(person_data['age_youngest'] >= 75), 'age_group'] = '75+'
-    person_data.loc[(person_data['no_people'] > 2), 'age_group'] = 'Other' # make 'other' for households not studied
+    person_data.loc[(person_data['age_youngest'] >= 65), 'age_group'] = '65+'
+    person_data.loc[(person_data['age_oldest'] >= 75), 'age_group'] = '75+'
     
     # room occupancy variable
     person_data['occupancy_rate'] = 'Adequately/Over_occupied'
     person_data.loc[person_data['rooms used solely by household'] - person_data['no_people'] > 2, 'occupancy_rate'] = 'Under_occupied'    
-    '''
     # use EU definition https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Under-occupied_dwelling
     """
     For statistical purposes, a dwelling is defined as under-occupied if the household living in it has at its disposal more than 
@@ -84,46 +81,6 @@ for year in years:
     one room for each single person between 12 and 17 years of age and not included in the previous category;
     one room per pair of children under 12 years of age.
     """
-    temp = pd.DataFrame(person_data['gender_age_all'].to_list()); temp.index = person_data.index
-    temp = temp.stack().reset_index().rename(columns={0:'gender_age'}).drop('level_1', axis=1)
-    temp['gender'] = [x.split('_')[0] for x in temp['gender_age']]
-    age = []
-    for x in temp['gender_age']:
-        a = str(x).split('_')[1]
-        if a == 'nan':
-            age.append(np.nan)
-        else:
-            age.append(int(float(a)))
-    temp['age'] = age
-    # split variables
-    temp['age_group'] = '0-11'
-    temp.loc[(temp['age'] >= 12) & (temp['age'] < 18), 'age_group'] = '12-17'
-    temp.loc[(temp['age'] >= 18), 'age_group'] = '18+'
-    # use NA for gender where it does not matter
-    temp.loc[(temp['age_group'] != '12-17'), 'gender'] = 'NA'
-    # count people
-    temp['count'] = 1
-    temp = temp.groupby(['case', 'gender', 'age_group']).sum()[['count']].unstack(['age_group', 'gender']).fillna(0).droplevel(axis=1, level=0)
-    # account for minors sharing rooms
-    for item in [('0-11', 'NA'), ('12-17',  'M'), ('12-17',  'W')]:
-        temp[item] = [math.ceil(x/2) for x in temp[item]]
-    temp['rooms_minors'] = temp[[('0-11', 'NA'), ('12-17',  'M'), ('12-17',  'W')]].sum(1)
-    # account for couples sharing rooms
-    temp = temp.join(person_data[['partners_spouses']])
-    temp['rooms_adults'] = temp[('18+', 'NA')]
-    temp.loc[temp['partners_spouses'] == 1, 'rooms_adults'] = temp['rooms_adults'] - 1
-    # account for communal space
-    temp['rooms_communal'] = 1
-    # compare to actual number of rooms available for households
-    temp = temp[['rooms_communal', 'rooms_adults', ('rooms_minors', '')]].join(person_data[['rooms used solely by household']])
-    # define occupancy
-    temp['occupancy'] = temp['rooms used solely by household'] - temp[['rooms_communal', 'rooms_adults', ('rooms_minors', '')]].sum(1)
-    temp['occupancy_rate'] = 'Adequately_occupied'
-    temp.loc[temp['occupancy'] < 0, 'occupancy_rate'] = 'Over_occupied'
-    temp.loc[temp['occupancy'] > 0, 'occupancy_rate'] = 'Under_occupied'
-    # add to person_data
-    person_data = person_data.join(temp[['occupancy_rate']])
-    '''
     
     # add gender variable for single households studied
     person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
@@ -131,7 +88,6 @@ for year in years:
     
     # add 'other' to not studied groups for dwelling
     person_data['dwelling_type'] = person_data['category of dwelling']
-    person_data.loc[(person_data['household_comp'] == 'Other'), 'dwelling_type'] = 'Other'
     
     if year >= 2013:
         # add disability allowance variable for households studied

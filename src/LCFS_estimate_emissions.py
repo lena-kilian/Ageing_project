@@ -25,7 +25,7 @@ else:
 
 output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
-years = list(range(2001, 2020))
+years = list(range(2017, 2020))
 
 # load LFC data
 lcfs = {year: pd.read_csv(output_path + 'outputs/LCFS/hhdspend_' + str(year) + '.csv', index_col=0) for year in years}
@@ -35,17 +35,18 @@ for year in years:
     hhdspend[year] = lcfs[year].loc[:,'1.1.1.1.1':'12.7.1.1.6'].astype(float) # already multiplied by weight
   
 # calculate emissions
-hhd_ghg, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
+hhd_co2, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
 
 # save product names
-idx = hhd_ghg[years[0]].columns.tolist()
+idx = hhd_co2[years[0]].columns.tolist()
 
 # calculate emission for individual households
 for year in years:
-    hhd_ghg[year] = hhd_ghg[year].fillna(0).apply(lambda x: x/people[year]['weight'])
-    hhd_ghg[year] = people[year].join(hhd_ghg[year])
+    hhd_co2[year] = hhd_co2[year].fillna(0).apply(lambda x: x/people[year]['weight'])
+    hhd_co2[year] = people[year].join(hhd_co2[year])
     
 # save household results
-with pd.ExcelWriter(output_path + 'outputs/GHG_by_hhds.xlsx') as writer:
+with pd.ExcelWriter(output_path + 'outputs/CO2_by_hhds.xlsx') as writer:
     for year in years:
-        hhd_ghg[year].to_excel(writer, sheet_name=str(year))
+        hhd_co2[year].to_excel(writer, sheet_name=str(year))
+        print(year)

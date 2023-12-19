@@ -13,10 +13,10 @@ import os
 
 
 def import_lcfs(year, coicop_lookup, lcf_filepath):
-    
+
     yr = str(year)
     
-    file_list = 'C:/Users/geolki/OneDrive - University of Leeds/PhD/PhD/Analysis/data/raw/LCFS/' + str(yr) + '/tab'
+    file_list = lcf_filepath + str(yr) + '/tab'
     files = {}
     for item in ['dvper', 'dvhh', 'rawhh', 'rawper']:
         for file in os.listdir(file_list):
@@ -27,7 +27,7 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     person_dict = {}; household_dict = {}
     for dataset in list(files.keys()):
 
-        data[dataset] = pd.read_csv(lcf_filepath + files[dataset], sep='\t', index_col=None,  encoding='utf8')\
+        data[dataset] = pd.read_csv(files[dataset], sep='\t', index_col=None,  encoding='utf8')\
             .rename(columns={'case1':'case'})
         data[dataset].columns = [x.lower() for x in data[dataset].columns]
         
