@@ -18,10 +18,8 @@ import pathlib
 
 path = str(pathlib.Path().resolve())
 
-if platform[:3] == 'win' and 'ds.leeds.ac.uk' in path:
+if platform[:3] == 'win':
     data_path = 'O:/UKMRIO_Data/data/model_inputs/'
-elif platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
-    data_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/UKMRIO_Data/'
 else:
     data_path = r'/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/UKMRIO_Data/'
 

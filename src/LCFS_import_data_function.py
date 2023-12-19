@@ -20,8 +20,8 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     files = {}
     for item in ['dvper', 'dvhh', 'rawhh', 'rawper']:
         for file in os.listdir(file_list):
-            if item in file and item in coicop_lookup.loc[coicop_lookup[yr] != 0]['Dataset'].tolist():
-                files[item] = str(yr) + '/tab/' + file
+            if item in file and item in coicop_lookup.loc[coicop_lookup[yr] != 0]['Dataset'].tolist() and 'urbanrural' not in file and 'q' not in file:
+                files[item] = file_list + '/' + file
     
     data = {}
     person_dict = {}; household_dict = {}
