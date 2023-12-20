@@ -101,8 +101,8 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     person_data['gender_all'] = new_gender
     person_data['age_all'] = new_age
     # extract lowest and highest ages
-    person_data['age_youngest'] = [x[0] for x in person_data['age_all']]
-    person_data['age_oldest'] = [x[-1] for x in person_data['age_all']]
+    person_data['age_youngest'] = [min(x) for x in person_data['age_all']]
+    person_data['age_oldest'] = [max(x) for x in person_data['age_all']]
         
     # clean up household_variables
     if len(household_dict.keys()) > 1:
@@ -117,11 +117,8 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     # rename dwelling types
     #dwelling_dict = {0:'Not recorded', 1:'Whole house bungalow-detached', 2:'Whole house bungalow semi-detached', 
     #                 3:'Whole house bungalow terrace', 4:'Purpose built flat maisonette', 5:'Part of house converted flat', 6:'Others'}
-    #dwelling_dict = {0:'Not recorded', 1:'Detached house', 2:'Semi-detached or terrace house', 
-    #                 3:'Semi-detached or terrace house', 4:'Apartment', 5:'Apartment', 6:'Other'}
-    dwelling_dict = {0:'Not recorded', 1:'Detached house', 2:'Apartment, semi-detached, terrace house, bungalow, other', 
-                     3:'Apartment, semi-detached, terrace house, bungalow, other', 4:'Apartment, semi-detached, terrace house, bungalow, other',
-                     5:'Apartment, semi-detached, terrace house, bungalow, other', 6:'Apartment, semi-detached, terrace house, bungalow, other'}
+    dwelling_dict = {0:'Not recorded', 1:'Detached house', 2:'Semi-detached or terrace house', 
+                     3:'Semi-detached or terrace house', 4:'Apartment', 5:'Apartment', 6:'Other'}
     useful_data['category of dwelling'] = useful_data['category of dwelling'].fillna(0).map(dwelling_dict)
     
     # multiply expenditure variables by weight to get UK total

@@ -26,7 +26,6 @@ else:
     output_path = r'/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
 
-
 years = list(range(2017, 2020))
 
 # load LFC data
@@ -35,7 +34,7 @@ people = {}; hhdspend={}
 for year in years:
     people[year] = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
     hhdspend[year] = lcfs[year].loc[:,'1.1.1.1.1':'12.7.1.1.6'].astype(float) # already multiplied by weight
-  
+    
 # calculate emissions
 hhd_co2, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
 

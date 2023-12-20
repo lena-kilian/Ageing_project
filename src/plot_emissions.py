@@ -20,27 +20,13 @@ results = pd.read_excel(output_path + 'outputs/CO2_by_hhds.xlsx', sheet_name=Non
 
 years = list(results.keys())
 # keep only categories linked to fuel burning in home; electricity; personal travel
-results_agg = pd.DataFrame()
-for year in years:
-    temp = cp.copy(results[year])
-    temp['pop'] = temp['no_people'] * temp['weight']
-    print(year, temp['weight'].mean(), temp['pop'].sum())
-    temp['total'] = temp.loc[:,'1.1.1 Bread and cereals':'12.7.1 Other services n.e.c.'].sum(1)
-    cats = temp.loc[:,'7.1 1 Motor cars':'7.3.4 Other transport services'].columns.tolist() + ['total']
-    temp = temp[cats + ['pop', 'weight']]
-    
-    temp[cats] = temp[cats].apply(lambda x:x*temp['weight'])
-    temp = pd.DataFrame(temp.sum()).T
-    
-    temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
-    
-    temp['year'] = int(year)
-    results_agg = results_agg.append(temp)
-
-
 cat_dict = {'4.5.1 Electricity':'Electricity', '4.5.2 Gas':'Gas', 
             '4.5.3 Liquid fuels':'Other home energy', '4.5.4 Solid fuels':'Other home energy', '4.5.5 Heat energy':'Other home energy',  
             '7.2.2 Fuels and lubricants for personal transport equipment':'Personal transport fuel'}
+
+
+for year in years:
+    print(results[year][['household_comp', 'age_group']].drop_duplicates())
 
 cats = []
 for item in list(cat_dict.values()):
@@ -84,3 +70,6 @@ for item in grouping_vars:
         aggregated_mean = aggregated_mean.append(temp2)
   
 aggregated_mean = aggregated_mean.fillna('All').drop(['No year', ' '], axis=1)
+aggregated_mean['household_comp'] = aggregated_mean['household_comp'] + '_' + aggregated_mean['age_group']
+
+aggregated_mean = aggregated_mean[['household_comp', 'dwelling_type', 'year', 'count', 'pct_count', 'pop', 'pct_pop'] + cats]
