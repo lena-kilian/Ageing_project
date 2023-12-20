@@ -9,8 +9,6 @@ Aggregating expenditure groups for LCFS by OAC x Region Profiles & UK Supergroup
 """
 
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import copy as cp
 
 # set working directory
@@ -56,40 +54,33 @@ for item in results[list(results.keys())[0]].columns:
         cat_dict[item] = 'Other_co2'
 
 
-grouping_var_main = 'household_comp'
-grouping_vars = ['dwelling_type', 'None'] # 'gender', 'occupancy_rate', 'disability_care', 'disability_mobility',
+grouping_var_main = ['household_comp', 'age_group']
+grouping_vars = ['dwelling_type', ' '] # 'gender', 'occupancy_rate', 'disability_care', 'disability_mobility',
 
 aggregated_data = pd.DataFrame()
 for year in years:
     temp = results[str(year)].rename(columns=cat_dict).sum(axis=1, level=0).drop('Other_co2', axis=1)
-    #temp.loc[temp['occupancy_rate'] != 'Under_occupied', 'occupancy_rate'] = 'Adequately/Over_occupied'
-    temp = temp.set_index(['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate',  'disability_care', 'disability_mobility'])
+    temp['year'] = year
+    temp[' '] = ' '
     temp['pop'] = temp['weight'] * temp['OECD scale']
+
     
     temp[cats] = temp[cats].apply(lambda x: x*temp['weight'])
     temp['count'] = 1
-    temp = temp.sum(axis=0, level=['household_comp', 'age_group', 'gender', 'dwelling_type', 'occupancy_rate',  'disability_care', 'disability_mobility'])\
-        [['pop', 'count'] + cats]
-    temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
+    
+    aggregated_data = aggregated_data.append(temp)
 
-    temp = temp.reset_index()
-    
-    temp['None'] = '.'
-    
-    temp2 = cp.copy(temp)
-    temp2['grouping'] = 'All'
-    temp2['year'] = year
-    
-    for item in grouping_vars: 
-        temp = cp.copy(temp2)
-        temp.loc[temp['household_comp'] == 'Other_Other', item] = 'NA'
-        temp[cats] = temp[cats].apply(lambda x: x*temp['pop'])
-        temp = temp.groupby([item, grouping_var_main]).sum().reset_index()
-        temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
-        temp['grouping'] = grouping_var_main + ', ' + item
-        temp['year'] = year
-        temp['count_pct'] = temp['count'] / temp['count'].sum() * 100
-        aggregated_data = aggregated_data.append(temp)
-        
-aggregated_data = aggregated_data[[grouping_var_main] + grouping_vars + ['pop', 'count', 'count_pct'] + cats]\
-    .fillna('All').drop_duplicates()
+aggregated_mean =  pd.DataFrame()
+for item in grouping_vars:
+    for year in ['year', 'No year']:
+        temp2 = cp.copy(aggregated_data)
+        temp2['No year'] = 'All'
+        temp2 = temp2.groupby(grouping_var_main + [item, year]).sum()
+        temp2[cats] = temp2[cats].apply(lambda x: x/temp2['pop'])
+        temp2 = temp2[['count', 'pop'] + cats].reset_index()
+        temp2['grouping'] = ', '.join(grouping_var_main + [item])
+        temp2['pct_count'] = temp2['count'] / temp2['count'].sum() * 100
+        temp2['pct_pop'] = temp2['pop'] / temp2['pop'].sum() * 100
+        aggregated_mean = aggregated_mean.append(temp2)
+  
+aggregated_mean = aggregated_mean.fillna('All').drop(['No year', ' '], axis=1)
