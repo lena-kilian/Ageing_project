@@ -72,4 +72,4 @@ for item in grouping_vars:
 aggregated_mean = aggregated_mean.fillna('All').drop(['No year', ' '], axis=1)
 aggregated_mean['household_comp'] = aggregated_mean['household_comp'] + '_' + aggregated_mean['age_group']
 
-aggregated_mean = aggregated_mean[['household_comp', 'dwelling_type', 'year', 'count', 'pct_count', 'pop', 'pct_pop'] + cats]
+aggregated_mean = aggregated_mean[['household_comp', 'dwelling_type', 'year', 'count', 'pct_count', 'pop', 'pct_pop'] + cats].sort_values(['year', 'dwelling_type', 'household_comp'])
