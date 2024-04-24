@@ -59,7 +59,7 @@ for year in years:
     
     # add age variable - everyone is aged 65+, but at least one person in under 75
     person_data['age_group'] = 'younger'
-    person_data.loc[(person_data['age_youngest'] >= 65), 'age_group'] = '65+'
+    person_data.loc[(person_data['age_oldest'] >= 65) & (person_data['age_oldest'] < 75), 'age_group'] = '65+'
     person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_oldest'] >= 75), 'age_group'] = '75+'
     
     # # room occupancy variable
