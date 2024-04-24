@@ -60,7 +60,7 @@ def make_Yhh_106(Y_d,years,meta):
         for r in range(0,meta['reg']['len']):
             temp  = temp + Y_d[yr].iloc[r*106:(r+1)*106,0:36].values
             
-        total_Yhh_106[yr] = df(temp, index =idx, columns =col)
+        total_Yhh_106[yr] = df(temp, index=idx, columns =col)
     
     return total_Yhh_106
 

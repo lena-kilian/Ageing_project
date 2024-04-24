@@ -54,6 +54,10 @@ for year in years:
     person_data['household_comp'] = 'other'
     person_data.loc[(person_data['no_people'] == 1), 'household_comp'] = 'single'
     person_data.loc[(person_data['no_people'] == 2) & (person_data['partners_spouses'] == 1), 'household_comp'] = 'couple'
+<<<<<<< Updated upstream
+=======
+    person_data.loc[(person_data['age_oldest'] < 65), 'household_comp'] = 'Other' # make 'other' for households not studies
+>>>>>>> Stashed changes
     
     # add age variable - everyone is aged 65+, but at least one person in under 75
     person_data['age_group'] = 'younger'
