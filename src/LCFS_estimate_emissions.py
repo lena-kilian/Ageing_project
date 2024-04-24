@@ -25,12 +25,7 @@ else:
     data_path = r'/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/UKMRIO_Data/'
     output_path = r'/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
-
-<<<<<<< Updated upstream
-years = list(range(2017, 2020))
-=======
 years = list(range(2001, 2020))
->>>>>>> Stashed changes
 
 # load LFC data
 lcfs = {year: pd.read_csv(output_path + 'outputs/LCFS/hhdspend_' + str(year) + '.csv', index_col=0) for year in years}
