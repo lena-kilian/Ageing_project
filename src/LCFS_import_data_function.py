@@ -118,7 +118,7 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     #dwelling_dict = {0:'Not recorded', 1:'Whole house bungalow-detached', 2:'Whole house bungalow semi-detached', 
     #                 3:'Whole house bungalow terrace', 4:'Purpose built flat maisonette', 5:'Part of house converted flat', 6:'Others'}
     dwelling_dict = {0:'Other', 1:'Detached, semi-detached or terrace house', 2:'Detached, semi-detached or terrace house', 
-                     3:'Detached, semi-detached or terrace housee', 4:'Apartment', 5:'Apartment', 6:'Other'}
+                     3:'Detached, semi-detached or terrace house', 4:'Apartment', 5:'Apartment', 6:'Other'}
     useful_data['category of dwelling'] = useful_data['category of dwelling'].fillna(0).map(dwelling_dict)
     
     # multiply expenditure variables by weight to get UK total
