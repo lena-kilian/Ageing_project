@@ -50,12 +50,19 @@ for item in expenditure[list(expenditure.keys())[0]].columns:
         
 # aggregate emission products
 
+order_groups = ['single younger', 'single 65+', 'single 75+', 'couple younger', 'couple 65+', 'couple 75+', 'other younger', 'other 65+', 'other 75+']
+order_hhld_comp = ['single', 'couple', 'other']
+
 for year in years:
     results[year] = results[year].rename(columns=cat_dict).sum(axis=1, level=0)
     expenditure[year] = expenditure[year].rename(columns=cat_dict_exp).sum(axis=1, level=0)
     expenditure[year].columns = ['Spend_' + x for x in expenditure[year].columns.tolist()]
     
     results[year] = results[year].join(expenditure[year])
+    
+    results[year]['hhd_comp_X_age'] = results[year]['household_comp'] + ' ' + results[year]['age_group']
+    results[year]['hhd_comp_X_age'] = pd.Categorical(results[year]['hhd_comp_X_age'], categories=order_groups, ordered=True)
+    results[year]['household_comp'] = pd.Categorical(results[year]['household_comp'], categories=order_hhld_comp, ordered=True)
     
 
 #######################################
@@ -88,7 +95,7 @@ for year in years:
     
 results_hhld_comp_co2['domestic_energy'] = results_hhld_comp_co2['Electricity'] + results_hhld_comp_co2['Gas'] + results_hhld_comp_co2['Other home energy']
 for year in years:
-    temp = results_hhld_comp_co2.loc[results_hhld_comp_co2['year'] == year].set_index('household_comp').loc[['single', 'couple', 'other']].reset_index()
+    temp = results_hhld_comp_co2.loc[results_hhld_comp_co2['year'] == year]
     sns.barplot(data=temp, x='household_comp', y='domestic_energy'); plt.title(str(year)); plt.show()
     
     
@@ -108,7 +115,7 @@ for year in years:
 
 results_hhld_comp_exp['Spend_domestic_energy'] = results_hhld_comp_exp['Spend_Electricity'] + results_hhld_comp_exp['Spend_Gas'] + results_hhld_comp_exp['Spend_Other home energy']
 for year in years:
-    temp = results_hhld_comp_exp.loc[results_hhld_comp_exp['year'] == year].set_index('household_comp').loc[['single', 'couple', 'other']].reset_index()
+    temp = results_hhld_comp_exp.loc[results_hhld_comp_exp['year'] == year]
     sns.barplot(data=temp, x='household_comp', y='Spend_domestic_energy'); plt.title(str(year)); plt.show()
     
 
@@ -119,7 +126,6 @@ for year in years:
     temp = results[year]
     temp['pop'] = temp['no_people'] + temp['weight']
     temp[cats_co2] = temp[cats_co2].apply(lambda x: x*temp['weight'])
-    temp['hhd_comp_X_age'] = temp['household_comp'] + ' ' + temp['age_group']
     temp = temp.groupby(['hhd_comp_X_age']).sum()
     temp[cats_co2] = temp[cats_co2].apply(lambda x: x/temp['pop'])
     temp = temp[cats_co2].reset_index()
@@ -129,17 +135,7 @@ for year in years:
 
 results_hhld_comp_age_co2['domestic_energy'] = results_hhld_comp_age_co2['Electricity'] + results_hhld_comp_age_co2['Gas'] + results_hhld_comp_age_co2['Other home energy']
 for year in years:
-    temp = results_hhld_comp_age_co2.loc[results_hhld_comp_age_co2['year'] == year]
-    
-    groups = ['single younger', 'single 65+', 'single 75+', 'couple younger', 'couple 65+', 'couple 75+', 'other younger', 'other 65+', 'other 75+']
-    for item in groups:
-        if item not in temp['hhd_comp_X_age'].tolist():
-            temp2 = pd.DataFrame(columns=['hhd_comp_X_age', 'domestic_energy'], index=[0])
-            temp2['hhd_comp_X_age'] = item; temp2['domestic_energy'] = np.nan
-            temp = temp.append(temp2)
-            
-    temp = temp.set_index('hhd_comp_X_age').loc[groups].reset_index()
-    
+    temp = results_hhld_comp_age_co2.loc[results_hhld_comp_age_co2['year'] == year]    
     sns.barplot(data=temp, x='hhd_comp_X_age', y='domestic_energy'); plt.title(str(year)); plt.xticks(rotation=90); plt.show()
     
     
@@ -150,7 +146,6 @@ for year in years:
     temp = results[year]
     temp['pop'] = temp['no_people'] + temp['weight']
     temp[cats_spend] = temp[cats_spend].apply(lambda x: x*temp['weight'])
-    temp['hhd_comp_X_age'] = temp['household_comp'] + ' ' + temp['age_group']
     temp = temp.groupby(['hhd_comp_X_age']).sum()
     temp[cats_spend] = temp[cats_spend].apply(lambda x: x/temp['pop'])
     temp = temp[cats_spend].reset_index()
@@ -161,34 +156,72 @@ for year in years:
 results_hhld_comp_age_exp['domestic_energy'] = results_hhld_comp_age_exp['Spend_Electricity'] + results_hhld_comp_age_exp['Spend_Gas'] + results_hhld_comp_age_exp['Spend_Other home energy']
 for year in years:
     temp = results_hhld_comp_age_exp.loc[results_hhld_comp_age_exp['year'] == year]
-    
-    groups = ['single younger', 'single 65+', 'single 75+', 'couple younger', 'couple 65+', 'couple 75+', 'other younger', 'other 65+', 'other 75+']
-    for item in groups:
-        if item not in temp['hhd_comp_X_age'].tolist():
-            temp2 = pd.DataFrame(columns=['hhd_comp_X_age', 'domestic_energy'], index=[0])
-            temp2['hhd_comp_X_age'] = item; temp2['domestic_energy'] = np.nan
-            temp = temp.append(temp2)
-            
-    temp = temp.set_index('hhd_comp_X_age').loc[groups].reset_index()
-    
     sns.barplot(data=temp, x='hhd_comp_X_age', y='domestic_energy'); plt.title(str(year)); plt.xticks(rotation=90); plt.show()
 
 # share of house
 results_house_type = pd.DataFrame()    
 for year in years:
     temp = results[year]
-    temp['hhd_comp_X_age'] = temp['household_comp'] + ' ' + temp['age_group']
     temp = temp.groupby(['hhd_comp_X_age', 'dwelling_type']).sum()[['weight']].unstack('dwelling_type').droplevel(axis=1, level=0)
     temp['sum'] = temp.sum(1)
+    temp = temp.apply(lambda x: x/temp['sum'] * 100).drop('sum', axis=1).T
+    temp['year'] = year
+    
+    results_house_type = results_house_type.append(temp)
+    
+    groups = ['single younger', 'single 65+', 'single 75+', 'couple younger', 'couple 65+', 'couple 75+', 'other younger', 'other 65+', 'other 75+']
+    for item in groups:
+        if item not in temp.columns.tolist():
+            temp[item] = np.nan
+    
+    temp = temp[['single younger', 'single 65+', 'single 75+', 'couple younger', 'couple 65+', 'couple 75+', 'other younger', 'other 65+', 'other 75+']].T
+    
+    temp.plot(kind='bar', stacked='True'); plt.title(str(year)); plt.xticks(rotation=90); plt.show()
+    
+    
+# house size (number of rooms)
+results_house_size = pd.DataFrame()    
+for year in years:
+    temp = results[year]
+    temp['rooms in accommodation'] = temp['rooms in accommodation'] / temp['no_people']
+    temp['year'] = year
+    
+    results_house_size = results_house_size.append(temp[['hhd_comp_X_age', 'rooms in accommodation', 'year']])
+    
+    
+for year in years:
+    temp = results_house_size.loc[results_house_size['year'] == year]
+    sns.boxplot(data=temp, x='hhd_comp_X_age', y='rooms in accommodation'); plt.title(str(year)); plt.xticks(rotation=90); plt.show()
+    
+
+
+# age of dwelling - not available
+
+income_groups = list(range(0, 100, 15))
+income_names = []
+start = 0
+for i in income_groups:
+    income_names.append(str(start) + '-' + str(i))
+    start = i 
+income_names = ['less than ' + str(income_groups[0])] + income_names[1:] + []
+
+# income 
+results_income = pd.DataFrame()    
+for year in years:
+    temp = results[year]
+    temp['Income anonymised'] = temp['Income anonymised'] * (365.25/7) / 1000
+    temp['Income'] = 'more than ' + str(income_groups[-1])
+    for i in range(len(income_groups[:-1])):
+        temp.loc[(temp['Income anonymised'] >= income_groups[i]) & (temp['Income anonymised'] < income_groups[i+1]), 'Income'] = str(income_groups[i]) + '-' +  str(income_groups[i+1])
+    temp.loc[(temp['Income anonymised'] < 0), 'Income'] = 'unkown'
+
+    temp = temp.groupby(['hhd_comp_X_age', 'Income']).sum()[['weight']].unstack('Income').droplevel(axis=1, level=0)
+    temp['sum'] = temp.sum(1)
     temp = temp.apply(lambda x: x/temp['sum'] * 100).drop('sum', axis=1)
-    temp = temp.loc['single younger', 'single 65+', 'single 75+', 'couple younger', 'couple 65+', 'couple 75+', 'other younger', 'other 65+', 'other 75+']
     
-    temp.plot(how='bar', kind='stacked'); plt.title(str(year)); plt.xticks(rotation=90); plt.show()
+    results_income = results_income.append(temp)
     
-    
-    
+    temp.plot(kind='bar', stacked='True'); plt.title(str(year)); plt.xticks(rotation=90); plt.show()
     
     
-    
-    
-    
+  
