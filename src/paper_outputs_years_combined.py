@@ -68,6 +68,7 @@ results_all = pd.DataFrame()
 for year in years:
     results_all = results_all.append(results[year])
 
+survey_count = results_all.groupby(['hhd_comp_X_age']).count()[['GOR']]
 
 #######################################
 ## Replicate outputs from Japan data ## 
@@ -230,5 +231,22 @@ temp.plot(kind='bar', stacked='True'); plt.title('2017-2019'); plt.xticks(rotati
 plt.ylabel('Percentage of Households (%)'); plt.xlabel(''); plt.legend(bbox_to_anchor=(1,1), title='Annual Income (1,000 GBP)')
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
 plt.savefig(output_path + 'outputs/plots/income.png', dpi=200, bbox_inches='tight'); plt.show()
+
+
+# income  per capita
+results_income_pc = pd.DataFrame()
+for item in ['no_people', 'OECD scale']:
+    temp = cp.copy(results_all)
+    temp['Income anonymised'] = temp['Income anonymised'] * (365.25/7) / 1000 * temp['weight']
+    temp['pop'] = temp['weight'] * temp[item]
+    temp = temp.groupby('hhd_comp_X_age').sum()
+    temp['Income anonymised'] = temp['Income anonymised'] / temp['pop']
+    temp['Pop'] = item
+    results_income_pc = results_income_pc.append(temp[['Pop', 'Income anonymised']].reset_index())
+
+sns.barplot(data=results_income_pc, x='hhd_comp_X_age', y='Income anonymised', hue='Pop'); plt.title('2017-2019'); plt.xticks(rotation=90);
+plt.ylabel('Annual Income per Capita\n(1,000 GBP/capita)'); plt.xlabel(''); plt.legend(bbox_to_anchor=(1,1), title='Number of people measure')
+plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
+plt.savefig(output_path + 'outputs/plots/income_pc.png', dpi=200, bbox_inches='tight'); plt.show()
 
   

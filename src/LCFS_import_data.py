@@ -47,7 +47,7 @@ for year in years:
 for year in years:
     spend_data = lcfs[year].loc[:,'1.1.1.1.1':]
     
-    # socio-emographic vaiables
+    # socio-demographic vaiables
     person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
     
     # add single/couple variable
@@ -60,34 +60,10 @@ for year in years:
     person_data['age_group'] = 'younger'
     person_data.loc[(person_data['age_oldest'] >= 65) & (person_data['age_oldest'] < 75), 'age_group'] = '65+'
     person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_oldest'] >= 75), 'age_group'] = '75+'
-    
-    # # room occupancy variable
-    # person_data['occupancy_rate'] = 'Adequately/Over_occupied'
-    # person_data.loc[person_data['rooms used solely by household'] - person_data['no_people'] > 2, 'occupancy_rate'] = 'Under_occupied'    
-    # # use EU definition https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Under-occupied_dwelling
-    
-    # # add gender variable for single households studied
-    # person_data['gender'] = [''.join(x) for x in person_data['gender_all']]
-    # person_data.loc[(person_data['no_people'] > 1) | (person_data['age_youngest'] < 65), 'gender'] = 'Other' # make 'other' for households not studied
-    
+   
     # add 'other' to not studied groups for dwelling
     person_data['dwelling_type'] = person_data['category of dwelling']
-    
-    # if year >= 2013:
-    #     # add disability allowance variable for households studied
-    #     person_data['disability_mobility'] = 'No'
-    #     person_data.loc[(person_data['disability allowance type'] == 2) | (person_data['disability allowance type'] == 3), 'disability_mobility'] = 'Yes'
-        
-    #     person_data['disability_care'] = 'No'
-    #     person_data.loc[(person_data['disability allowance type'] == 1) | (person_data['disability allowance type'] == 3), 'disability_care'] = 'Yes'
-       
-    #     person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_care'] = 'Other'
-    #     person_data.loc[(person_data['household_comp'] == 'Other'), 'disability_mobility'] = 'Other'
-    # else:
-    #     person_data['disability_care'] = 'NA'
-    #     person_data['disability_mobility'] = 'NA'
-        
-    
+ 
     # filter relevant columns
     person_data = person_data[['GOR', 'OA class 3',  # geographic
                                'household_comp', 'age_group', 'dwelling_type', 'age_oldest', 'age_youngest', # analytical demographic # 'gender', 'occupancy_rate', 'disability_care', 'disability_mobility'
