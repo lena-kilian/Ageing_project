@@ -19,7 +19,7 @@ import pathlib
 path = str(pathlib.Path().resolve())
 
 if platform[:3] == 'win':
-    data_path = 'O:/UKMRIO_Data/data/model_inputs/'
+    data_path = 'O:/a72/UKMRIO_Data/data/model_inputs/'
     output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 else:
     data_path = r'/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/UKMRIO_Data/'
