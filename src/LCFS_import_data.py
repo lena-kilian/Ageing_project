@@ -22,12 +22,14 @@ path = str(pathlib.Path().resolve())
 
 if platform[:3] == 'win' and 'ds.leeds.ac.uk' in path:
     data_path = 'O:/UKMRIO_Data/data/'
+    output_path = 'O:/geolki/Ageing/'
 elif platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
     data_path = 'C:/Users/geolki/Documents/Analysis/data/'
+    output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 else:
     data_path = r'/Users/lenakilian/Documents/Ausbildung/UoLeeds/PhD/Analysis/data/'
-    
-output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
+    output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
+
 
 years = list(range(2017, 2020))
 

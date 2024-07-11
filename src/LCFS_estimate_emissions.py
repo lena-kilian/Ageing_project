@@ -19,8 +19,8 @@ import pathlib
 path = str(pathlib.Path().resolve())
 
 if platform[:3] == 'win':
-    data_path = 'O:/a72/UKMRIO_Data/data/model_inputs/'
-    output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
+    data_path = 'O:/UKMRIO_Data/data/model_inputs/'
+    output_path = 'O:/geolki/Ageing/'
 else:
     data_path = r'/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/UKMRIO_Data/'
     output_path = r'/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
@@ -36,6 +36,21 @@ for year in years:
     
 # calculate emissions
 hhd_co2, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
+
+# calculate emissions from multipliers
+keep = ['4.5.1 Electricity', '4.5.2 Gas', '4.5.3 Liquid fuels', '4.5.4 Solid fuels', '4.5.5 Heat energy', 
+        '7.2.2 Fuels and lubricants for personal transport equipment']
+hhd_co2_2 = {}
+for year in years:
+    temp = cp.copy(hhdspend[year])
+    temp.columns = [x.split('.')[0] + '.' + x.split('.')[1] + '.' + x.split('.')[2] for x in temp.columns]
+    temp = temp.sum(axis=1, level=0)[[x.split(' ')[0] for x in keep]]
+    
+    temp_mult = cp.copy(multipliers[year])
+    temp_mult['ccp3'] = [x.split(' ')[0] for x in temp_mult.index]
+    temp_mult = temp_mult.loc[keep]
+    
+    temp_co2 = temp.T.apply(lambda x: x * temp_mult.set_index('ccp3')['multipliers']).fillna(0)
 
 # save product names
 idx = hhd_co2[years[0]].columns.tolist()

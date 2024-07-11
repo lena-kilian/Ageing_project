@@ -17,13 +17,13 @@ import numpy as np
 # set working directory
 # make different path depending on operating system
 
-output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
+output_path = 'O:/geolki/Ageing/'
 
 results = pd.read_excel(output_path + 'outputs/CO2_by_hhds.xlsx', sheet_name=None, index_col='case')
 
 years = list(results.keys())
 
-pop = 'no_people' #'OECD scale'
+pop = 'no_people' # 'OECD scale' #
 
 expenditure = {}
 for year in years:
@@ -164,15 +164,7 @@ sns.barplot(data=temp, x='hhd_comp_X_age', y='domestic_energy', color='#4472C4')
 plt.ylabel('Domestic Energy per Capita (tCO2/capita)'); plt.xlabel('') 
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
 plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_co2.png', dpi=200, bbox_inches='tight'); plt.show()
-   
-
-temp = results_hhld_comp_age_co2.set_index(['hhd_comp_X_age'])[['Electricity', 'Gas', 'Other home energy']]\
-    .stack().reset_index().rename(columns={'level_1':'Source', 0:'CO2'})
-sns.barplot(data=temp, x='hhd_comp_X_age', y='CO2', hue='Source'); plt.title('2017-2019'); plt.xticks(rotation=90);
-plt.ylabel('Domestic Energy per Capita (tCO2/capita)'); plt.xlabel('') 
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_x_source_co2.png', dpi=200, bbox_inches='tight'); plt.show()
-        
+    
 
 # Spend by household_comp (single, couple, other) x age
 
