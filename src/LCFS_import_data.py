@@ -10,7 +10,7 @@ Import hhld expenditure data and adjust physical units 2001-2018
 
 import pandas as pd
 import LCFS_import_data_function as lcfs_import
-from sys import platform
+import sys
 import pathlib
 #import math
 #import numpy as np
@@ -20,10 +20,10 @@ import pathlib
 
 path = str(pathlib.Path().resolve())
 
-if platform[:3] == 'win' and 'ds.leeds.ac.uk' in path:
+if sys.platform[:3] == 'win' and 'ds.leeds.ac.uk' in path:
     data_path = 'O:/UKMRIO_Data/data/'
     output_path = 'O:/geolki/Ageing/'
-elif platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
+elif sys.platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
     data_path = 'C:/Users/geolki/Documents/Analysis/data/'
     output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 else:
@@ -45,9 +45,24 @@ for year in years:
     
 #lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
 
+win_sd = 2.5
 # add household composition for households of interest
 for year in years:
-    spend_data = lcfs[year].loc[:,'1.1.1.1.1':]
+    spend_data = lcfs[year].loc[:,'1.1.1.1.1':].apply(lambda x: x*(365.25/7))
+    
+    '''
+    spend_data = spend_data.apply(lambda x: x/(lcfs[year]['no_people'] * lcfs[year]['weight']))
+
+    desc = spend_data.describe()
+    for item in spend_data.loc[:,'4.5.1.1.1.1':'4.5.5.1.1'].columns.tolist():
+        min_val = desc.loc['mean', item] - (4* desc.loc['std', item])
+        max_val = desc.loc['mean', item] + (4* desc.loc['std', item])
+    
+        spend_data.loc[spend_data[item] < min_val, item] = min_val
+        spend_data.loc[spend_data[item] > max_val, item] = max_val
+        
+    spend_data = spend_data.apply(lambda x: x * (lcfs[year]['no_people'] * lcfs[year]['weight']))
+    '''
     
     # socio-demographic vaiables
     person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
@@ -60,7 +75,7 @@ for year in years:
     
     # add age variable - everyone is aged 65+, but at least one person in under 75
     person_data['age_group'] = 'younger'
-    person_data.loc[(person_data['age_oldest'] >= 65) & (person_data['age_oldest'] < 75), 'age_group'] = '65+'
+    person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_oldest'] < 75), 'age_group'] = '65+'
     person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_oldest'] >= 75), 'age_group'] = '75+'
    
     # add 'other' to not studied groups for dwelling
@@ -75,3 +90,5 @@ for year in years:
     # save data - this is already multiplied by weight
     temp = person_data.join(spend_data)#.join(energy_spend)
     temp.to_csv(output_path + 'outputs/LCFS/hhdspend_' + str(year) + '.csv')
+    
+print(sys.argv[0])

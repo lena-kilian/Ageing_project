@@ -13,6 +13,7 @@ import copy as cp
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 # set working directory
 # make different path depending on operating system
@@ -25,30 +26,22 @@ years = list(results.keys())
 
 pop = 'no_people' # 'OECD scale' #
 
-expenditure = {}
-for year in years:
-    expenditure[year] = pd.read_csv(output_path + 'outputs/LCFS/hhdspend_' + str(year) + '.csv', index_col='case').loc[:, '1.1.1.1.1':]
-    expenditure[year].columns = [x.split('.')[0] + '.' + x.split('.')[1] + '.' + x.split('.')[2] for x in expenditure[year].columns]
-    expenditure[year] = expenditure[year].sum(axis=1, level=0)
+expenditure = pd.read_excel(output_path + 'outputs/EXP_by_hhds.xlsx', sheet_name=None, index_col='case')
 
 # keep only categories linked to fuel burning in home; electricity; personal travel
 cat_dict = {'4.5.1 Electricity':'Electricity', '4.5.2 Gas':'Gas', 
-            '4.5.3 Liquid fuels':'Other home energy', '4.5.4 Solid fuels':'Other home energy', '4.5.5 Heat energy':'Other home energy',  
-            '7.2.2 Fuels and lubricants for personal transport equipment':'Personal transport fuel'}
+            '4.5.3 Liquid fuels':'Other home energy', '4.5.4 Solid fuels':'Other home energy', '4.5.5 Heat energy':'Other home energy'}
 
-cat_dict_exp = {}
-for item in list(cat_dict.keys()):
-    cat_dict_exp[str(item.split(' ')[0])] = cat_dict[item]
+cats_co2 = []
+for item in list(cat_dict.values()):
+    if item not in cats_co2:
+        cats_co2.append(item)
 
-person_cols = results[list(results.keys())[0]].loc[:,:'1.1.1 Bread and cereals'].columns.tolist()[:-1]
+person_cols = results[list(results.keys())[0]].loc[:,:'OECD scale'].columns.tolist()
 
 for item in results[list(results.keys())[0]].columns:
     if item not in person_cols and item not in list(cat_dict.keys()):
         cat_dict[item] = 'Other_co2'
-        
-for item in expenditure[list(expenditure.keys())[0]].columns:
-    if item not in list(cat_dict_exp.keys()):
-        cat_dict_exp[item] = 'Other_co2'
         
 # aggregate emission products
 
@@ -57,7 +50,7 @@ order_hhld_comp = ['single', 'couple', 'other']
 
 for year in years:
     results[year] = results[year].rename(columns=cat_dict).sum(axis=1, level=0)
-    expenditure[year] = expenditure[year].rename(columns=cat_dict_exp).sum(axis=1, level=0)
+    expenditure[year] = expenditure[year].rename(columns=cat_dict).fillna(0).sum(axis=1, level=0)
     expenditure[year].columns = ['Spend_' + x for x in expenditure[year].columns.tolist()]
     
     results[year] = results[year].join(expenditure[year])
@@ -65,6 +58,10 @@ for year in years:
     results[year]['hhd_comp_X_age'] = results[year]['household_comp'] + ' ' + results[year]['age_group']
     results[year]['hhd_comp_X_age'] = pd.Categorical(results[year]['hhd_comp_X_age'], categories=order_groups, ordered=True)
     results[year]['household_comp'] = pd.Categorical(results[year]['household_comp'], categories=order_hhld_comp, ordered=True)
+    
+    if 'Other_co2' in results[year].columns.tolist():
+        results[year] = results[year].drop('Other_co2', axis=1)
+    
     
 results_all = pd.DataFrame()
 for year in years:
@@ -75,13 +72,21 @@ for year in years:
 survey_count = results_all.groupby(['hhd_comp_X_age']).count()[['GOR']]
 
 
+#results_all = results_all.loc[results_all['Electricity'] < 40]
+
 ### check spend vs emissions
 for item in ['Gas', 'Electricity', 'Other home energy']:
-    sns.scatterplot(data=results_all, x=item, y='Spend_' + item, hue='hhd_comp_X_age')
-    plt.xlim(0, 10); plt.ylim(0, 100)
+    temp = cp.copy(results_all)
+    temp['CO2_pc'] = temp[item] / temp['no_people']
+    temp['Spend_pc'] = temp['Spend_' + item] / temp['no_people']
+    
+    sns.scatterplot(data=temp, x='CO2_pc', y='Spend_pc', hue='hhd_comp_X_age')
+    #plt.xlim(0, 100); plt.ylim(0, 100)
+    plt.title(item)
     plt.legend(bbox_to_anchor=(1,1))
     plt.show()
     
+
 corr_cats = ['Electricity', 'Gas', 'Spend_Electricity', 'Spend_Gas']
 
 corr1 = results_all[corr_cats].corr()
@@ -89,19 +94,26 @@ corr2 = results_all[['year'] + corr_cats].groupby('year').corr().unstack(level=1
 corr3 = results_all[['year', 'hhd_comp_X_age'] + corr_cats].groupby(['year', 'hhd_comp_X_age']).corr().unstack(level=2)[[('Gas', 'Spend_Gas'), ('Electricity', 'Spend_Electricity')]]
 
 
+
+# check
+check = results_all.groupby('hhd_comp_X_age').describe()\
+    [['age_youngest', 'age_oldest', 'no_people', 'OECD scale']]\
+        .swaplevel(axis=1).drop(['25%', '50%', '75%'], axis=1)
+        
+temp = cp.copy(results_all)
+temp['dom_co2'] = temp['Electricity'] + temp['Gas'] + temp['Other home energy']
+temp['dom_co2_pc'] = temp['dom_co2'] / temp['no_people']
+sns.boxplot(data=temp, y='dom_co2_pc', x='hhd_comp_X_age'); plt.ylim(-5, 50); plt.xticks(rotation=90); plt.show()
+
+sns.boxplot(data=temp, y='dom_co2_pc', x='hhd_comp_X_age'); plt.ylim(-5, 50); plt.xticks(rotation=90); plt.show()
+
+check_avg = temp.mean()
+
 #######################################
 ## Replicate outputs from Japan data ## 
 #######################################
 
-cats_co2 = []
-for item in list(cat_dict.values()):
-    if item not in cats_co2:
-        cats_co2.append(item)
-
-cats_spend = []
-for item in list(cat_dict_exp.values()):
-    if 'Spend_' + item not in cats_spend:
-        cats_spend.append('Spend_' + item)
+cats_spend = ['Spend_' + x for x in cats_co2]
 
 # CO2e by household_comp (single, couple, other)
 
@@ -140,7 +152,7 @@ results_hhld_comp_exp['Spend_domestic_energy'] = results_hhld_comp_exp['Spend_El
 
 temp = results_hhld_comp_exp
 sns.barplot(data=temp, x='household_comp', y='Spend_domestic_energy'); plt.title('2017-2019'); 
-plt.ylabel('Domestic Energy Spend per Capita\n(weekly GBP/capita)'); plt.xlabel(''); 
+plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel(''); 
 plt.savefig(output_path + 'outputs/plots/hhld_comp_spend.png', dpi=200, bbox_inches='tight'); plt.show()
     
 
@@ -166,6 +178,15 @@ plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':');
 plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_co2.png', dpi=200, bbox_inches='tight'); plt.show()
     
 
+temp = results_hhld_comp_age_co2.set_index(['hhd_comp_X_age'])[['Electricity', 'Gas', 'Other home energy']]\
+    .stack().reset_index().rename(columns={'level_1':'Source', 0:'Spend'})
+sns.barplot(data=temp, x='hhd_comp_X_age', y='Spend', hue='Source'); plt.title('2017-2019'); plt.xticks(rotation=90);
+plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel('') 
+plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
+plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_x_source_spend.png', dpi=200, bbox_inches='tight'); plt.show()
+ 
+
+
 # Spend by household_comp (single, couple, other) x age
 
 results_hhld_comp_age_exp = pd.DataFrame()
@@ -183,7 +204,7 @@ results_hhld_comp_age_exp['domestic_energy'] = results_hhld_comp_age_exp['Spend_
 temp = results_hhld_comp_age_exp
 
 sns.barplot(data=temp, x='hhd_comp_X_age', y='domestic_energy', color='#4472C4'); plt.title('2017-2019'); plt.xticks(rotation=90); 
-plt.ylabel('Domestic Energy Spend per Capita\n(weekly GBP/capita)'); plt.xlabel('');
+plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel('');
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
 plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_spend.png', dpi=200, bbox_inches='tight'); plt.show()
 
@@ -191,7 +212,7 @@ plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_spend.png', dpi=200, bb
 temp = results_hhld_comp_age_exp.set_index(['hhd_comp_X_age'])[['Spend_Electricity', 'Spend_Gas', 'Spend_Other home energy']]\
     .stack().reset_index().rename(columns={'level_1':'Source', 0:'CO2'})
 sns.barplot(data=temp, x='hhd_comp_X_age', y='CO2', hue='Source'); plt.title('2017-2019'); plt.xticks(rotation=90);
-plt.ylabel('Domestic Energy Spend per Capita\n(weekly GBP/capita)'); plt.xlabel('') 
+plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel('') 
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
 plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_x_source_spend.png', dpi=200, bbox_inches='tight'); plt.show()
  
@@ -278,4 +299,5 @@ plt.ylabel('Annual Income per Capita\n(1,000 GBP/capita)'); plt.xlabel(''); plt.
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
 plt.savefig(output_path + 'outputs/plots/income_pc.png', dpi=200, bbox_inches='tight'); plt.show()
 
-  
+
+print(sys.argv[0])

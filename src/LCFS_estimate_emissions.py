@@ -10,15 +10,16 @@ Aggregating expenditure groups for LCFS by OAC x Region Profiles & UK Supergroup
 
 import pandas as pd
 import estimate_emissions_main_function as estimate_emissions
-from sys import platform
+import sys
 import pathlib
+import copy as cp
 
 # set working directory
 # make different path depending on operating system
 
 path = str(pathlib.Path().resolve())
 
-if platform[:3] == 'win':
+if sys.platform[:3] == 'win':
     data_path = 'O:/UKMRIO_Data/data/model_inputs/'
     output_path = 'O:/geolki/Ageing/'
 else:
@@ -38,19 +39,16 @@ for year in years:
 hhd_co2, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
 
 # calculate emissions from multipliers
-keep = ['4.5.1 Electricity', '4.5.2 Gas', '4.5.3 Liquid fuels', '4.5.4 Solid fuels', '4.5.5 Heat energy', 
-        '7.2.2 Fuels and lubricants for personal transport equipment']
-hhd_co2_2 = {}
+keep = {'4.5.1':'4.5.1 Electricity', '4.5.2':'4.5.2 Gas', '4.5.3':'4.5.3 Liquid fuels', '4.5.4':'4.5.4 Solid fuels', '4.5.5':'4.5.5 Heat energy', 
+        '7.2.2':'7.2.2 Fuels and lubricants for personal transport equipment'}
+
+hhd_exp = {}
 for year in years:
     temp = cp.copy(hhdspend[year])
     temp.columns = [x.split('.')[0] + '.' + x.split('.')[1] + '.' + x.split('.')[2] for x in temp.columns]
-    temp = temp.sum(axis=1, level=0)[[x.split(' ')[0] for x in keep]]
-    
-    temp_mult = cp.copy(multipliers[year])
-    temp_mult['ccp3'] = [x.split(' ')[0] for x in temp_mult.index]
-    temp_mult = temp_mult.loc[keep]
-    
-    temp_co2 = temp.T.apply(lambda x: x * temp_mult.set_index('ccp3')['multipliers']).fillna(0)
+    temp = temp.sum(axis=1, level=0)[list(keep.keys())].rename(columns=keep)
+    temp = temp.apply(lambda x: x/people[year]['weight'])
+    hhd_exp[year] = temp
 
 # save product names
 idx = hhd_co2[years[0]].columns.tolist()
@@ -65,3 +63,11 @@ with pd.ExcelWriter(output_path + 'outputs/CO2_by_hhds.xlsx') as writer:
     for year in years:
         hhd_co2[year].to_excel(writer, sheet_name=str(year))
         print(year)
+        
+        
+with pd.ExcelWriter(output_path + 'outputs/EXP_by_hhds.xlsx') as writer:
+    for year in years:
+        hhd_exp[year].to_excel(writer, sheet_name=str(year))
+        print(year)
+        
+print(sys.argv[0])
