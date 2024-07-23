@@ -9,19 +9,15 @@ Functions to attach the LCFS to carbon emissions, based on code by Anne Owen
 """
 
 import pandas as pd
-import os
-
 
 def import_lcfs(year, coicop_lookup, lcf_filepath):
 
     yr = str(year)
     
     file_list = lcf_filepath + str(yr) + '/tab'
-    files = {}
-    for item in ['dvper', 'dvhh', 'rawhh', 'rawper']:
-        for file in os.listdir(file_list):
-            if item in file and item in coicop_lookup.loc[coicop_lookup[yr] != 0]['Dataset'].tolist() and 'urbanrural' not in file and 'q' not in file:
-                files[item] = file_list + '/' + file
+    temp = coicop_lookup.loc[coicop_lookup['Dataset'] == 'link'].set_index('Desc_full')
+    files = {name: file_list + '/' + temp.loc[name, yr] for name in ['dvhh', 'dvper']}
+
     
     data = {}
     person_dict = {}; household_dict = {}

@@ -12,7 +12,6 @@ import pandas as pd
 import copy as cp
 import seaborn as sns
 import matplotlib.pyplot as plt
-import numpy as np
 import sys
 
 # set working directory
@@ -20,13 +19,14 @@ import sys
 
 output_path = 'O:/geolki/Ageing/'
 
-results = pd.read_excel(output_path + 'outputs/CO2_by_hhds.xlsx', sheet_name=None, index_col='case')
+years = list(range(2017, 2020))
 
-years = list(results.keys())
+results = {}; expenditure = {}
+for year in years:
+    results[year] = pd.read_excel(output_path + 'outputs/CO2_by_hhds.xlsx', sheet_name=str(year), index_col='case')
+    expenditure[year] = pd.read_excel(output_path + 'outputs/EXP_by_hhds.xlsx', sheet_name=str(year), index_col='case')
 
 pop = 'no_people' # 'OECD scale' #
-
-expenditure = pd.read_excel(output_path + 'outputs/EXP_by_hhds.xlsx', sheet_name=None, index_col='case')
 
 # keep only categories linked to fuel burning in home; electricity; personal travel
 cat_dict = {'4.5.1 Electricity':'Electricity', '4.5.2 Gas':'Gas', 
@@ -36,6 +36,8 @@ cats_co2 = []
 for item in list(cat_dict.values()):
     if item not in cats_co2:
         cats_co2.append(item)
+        
+cats_spend = ['Spend_' + x for x in cats_co2]
 
 person_cols = results[list(results.keys())[0]].loc[:,:'OECD scale'].columns.tolist()
 
@@ -47,6 +49,7 @@ for item in results[list(results.keys())[0]].columns:
 
 order_groups = ['single younger', 'single 65+', 'single 75+', 'couple younger', 'couple 65+', 'couple 75+', 'other younger', 'other 65+', 'other 75+']
 order_hhld_comp = ['single', 'couple', 'other']
+order_age = ['younger', '65+', '75+']
 
 for year in years:
     results[year] = results[year].rename(columns=cat_dict).sum(axis=1, level=0)
@@ -58,6 +61,8 @@ for year in years:
     results[year]['hhd_comp_X_age'] = results[year]['household_comp'] + ' ' + results[year]['age_group']
     results[year]['hhd_comp_X_age'] = pd.Categorical(results[year]['hhd_comp_X_age'], categories=order_groups, ordered=True)
     results[year]['household_comp'] = pd.Categorical(results[year]['household_comp'], categories=order_hhld_comp, ordered=True)
+    results[year]['age_group'] = pd.Categorical(results[year]['age_group'], categories=order_age, ordered=True)
+    results[year]['age_hrp'] = pd.Categorical(results[year]['age_hrp'], categories=order_age, ordered=True)
     
     if 'Other_co2' in results[year].columns.tolist():
         results[year] = results[year].drop('Other_co2', axis=1)
@@ -72,150 +77,96 @@ for year in years:
 survey_count = results_all.groupby(['hhd_comp_X_age']).count()[['GOR']]
 
 
-#results_all = results_all.loc[results_all['Electricity'] < 40]
-
-### check spend vs emissions
-for item in ['Gas', 'Electricity', 'Other home energy']:
-    temp = cp.copy(results_all)
-    temp['CO2_pc'] = temp[item] / temp['no_people']
-    temp['Spend_pc'] = temp['Spend_' + item] / temp['no_people']
-    
-    sns.scatterplot(data=temp, x='CO2_pc', y='Spend_pc', hue='hhd_comp_X_age')
-    #plt.xlim(0, 100); plt.ylim(0, 100)
-    plt.title(item)
-    plt.legend(bbox_to_anchor=(1,1))
-    plt.show()
-    
-
-corr_cats = ['Electricity', 'Gas', 'Spend_Electricity', 'Spend_Gas']
-
-corr1 = results_all[corr_cats].corr()
-corr2 = results_all[['year'] + corr_cats].groupby('year').corr().unstack(level=1)[[('Gas', 'Spend_Gas'), ('Electricity', 'Spend_Electricity')]]
-corr3 = results_all[['year', 'hhd_comp_X_age'] + corr_cats].groupby(['year', 'hhd_comp_X_age']).corr().unstack(level=2)[[('Gas', 'Spend_Gas'), ('Electricity', 'Spend_Electricity')]]
-
-
-
-# check
 check = results_all.groupby('hhd_comp_X_age').describe()\
-    [['age_youngest', 'age_oldest', 'no_people', 'OECD scale']]\
-        .swaplevel(axis=1).drop(['25%', '50%', '75%'], axis=1)
-        
+    .swaplevel(axis=1)[['mean', 'min', 'max', 'count']]\
+        .swaplevel(axis=1)[['age_youngest', 'age_oldest', 'Electricity', 'Gas', 'no_people']]
+
+check2 = results_all.groupby('year').describe()\
+    .swaplevel(axis=1)[['mean', 'min', 'max', 'count']]\
+        .swaplevel(axis=1)[['Electricity', 'Gas', 'Other home energy']]
+
+for item in ['Electricity', 'Gas', 'Other home energy']:
+    temp = cp.copy(results_all)
+    temp['co2'] = temp[item] / temp['no_people']
+    temp['exp'] = temp['Spend_' + item] / temp['no_people']
+    sns.scatterplot(data=temp, x='co2', y='exp', hue='year')
+    plt.title(item)
+    plt.show()
+
+
 temp = cp.copy(results_all)
-temp['dom_co2'] = temp['Electricity'] + temp['Gas'] + temp['Other home energy']
-temp['dom_co2_pc'] = temp['dom_co2'] / temp['no_people']
-sns.boxplot(data=temp, y='dom_co2_pc', x='hhd_comp_X_age'); plt.ylim(-5, 50); plt.xticks(rotation=90); plt.show()
+temp['all_home'] = temp[['Electricity', 'Gas', 'Other home energy']].sum(1) / temp['no_people']
 
-sns.boxplot(data=temp, y='dom_co2_pc', x='hhd_comp_X_age'); plt.ylim(-5, 50); plt.xticks(rotation=90); plt.show()
+sns.barplot(data=temp, y='all_home', x='household_comp', hue='age_group'); plt.title('age GROUP'); plt.show()
+sns.barplot(data=temp, y='all_home', x='household_comp', hue='age_hrp'); plt.title('age HRP'); plt.show()
 
-check_avg = temp.mean()
+temp2 = temp.set_index(['all_home', 'household_comp'])[['age_hrp', 'age_group']].stack().reset_index()
+temp2.columns= ['all_home', 'hhd_comp', 'age_type', 'age']
+temp2['compXage'] = temp2['hhd_comp'].astype(str) + ' ' + temp2['age'].astype(str)
+temp2['compXage'] = pd.Categorical(temp2['compXage'], categories=order_groups, ordered=True)
+
+sns.barplot(data=temp2, y='all_home', x='compXage', hue='age_type'); plt.xticks(rotation=90); plt.show()
+
+sns.barplot(data=temp2, y='all_home', hue='compXage', x='age_type'); plt.legend(bbox_to_anchor=(1,1)); plt.show()
+
+sns.barplot(data=temp2, y='all_home', hue='age', x='age_type'); plt.legend(bbox_to_anchor=(1,1)); plt.show()
 
 #######################################
 ## Replicate outputs from Japan data ## 
 #######################################
 
-cats_spend = ['Spend_' + x for x in cats_co2]
-
-# CO2e by household_comp (single, couple, other)
-
-results_hhld_comp_co2 = pd.DataFrame()
-
-temp = cp.copy(results_all)
-temp['pop'] = temp[pop] * temp['weight']
-temp[cats_co2] = temp[cats_co2].apply(lambda x: x*temp['weight'])
-temp = temp.groupby(['household_comp']).sum()
-temp[cats_co2] = temp[cats_co2].apply(lambda x: x/temp['pop'])
-temp = temp[cats_co2].reset_index()
-temp['year'] = year
-
-results_hhld_comp_co2 = results_hhld_comp_co2.append(temp)
+for value in ['co2', 'spend']:
     
-results_hhld_comp_co2['domestic_energy'] = results_hhld_comp_co2['Electricity'] + results_hhld_comp_co2['Gas'] + results_hhld_comp_co2['Other home energy']
-temp = results_hhld_comp_co2
-sns.barplot(data=temp, x='household_comp', y='domestic_energy'); plt.title('2017-2019'); plt.ylabel('Domestic Emissions per Capita (tCO2/capita)'); plt.xlabel(''); 
-plt.savefig(output_path + 'outputs/plots/hhld_comp_co2.png', dpi=200, bbox_inches='tight'); plt.show()
+    # only household comp or age
+    cats = eval('cats_' + value)
+    fig, axs = plt.subplots(ncols=2, figsize=(10, 5), sharey=True)
+    for i in range(2):
+        item = ['household_comp', 'age_group'][i]
     
+        temp = cp.copy(results_all)
+        temp['pop'] = temp[pop] * temp['weight']
+        temp[cats] = temp[cats].apply(lambda x: x*temp['weight'])
+        temp = temp.groupby([item]).sum()
+        temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
+        temp = temp[cats].reset_index()
     
-# Spend by household_comp (single, couple, other)
+        temp['domestic_energy'] = temp[cats].sum(1)
+        
+        sns.barplot(ax=axs[i], data=temp, x=item, y='domestic_energy', color='#4472C4')
+        axs[i].set_title(item.capitalize().replace('_', ' ') + ' (2017-2019)'); axs[i].set_xlabel(''); 
+        
+    if value == 'co2':
+        axs[0].set_ylabel('Domestic Emissions per Capita (tCO2/capita)')
+    else:
+        axs[0].set_ylabel('Domestic Energy Spend per Capita')
+    axs[1].set_ylabel('')
 
-results_hhld_comp_exp = pd.DataFrame()
-temp = cp.copy(results_all)
-temp['pop'] = temp[pop] * temp['weight']
-temp[cats_spend] = temp[cats_spend].apply(lambda x: x*temp['weight'])
-temp = temp.groupby(['household_comp']).sum()
-temp[cats_spend] = temp[cats_spend].apply(lambda x: x/temp['pop'])
-temp = temp[cats_spend].reset_index()
-temp['year'] = year
-
-results_hhld_comp_exp = results_hhld_comp_exp.append(temp)
-
-results_hhld_comp_exp['Spend_domestic_energy'] = results_hhld_comp_exp['Spend_Electricity'] + results_hhld_comp_exp['Spend_Gas'] + results_hhld_comp_exp['Spend_Other home energy']
-
-temp = results_hhld_comp_exp
-sns.barplot(data=temp, x='household_comp', y='Spend_domestic_energy'); plt.title('2017-2019'); 
-plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel(''); 
-plt.savefig(output_path + 'outputs/plots/hhld_comp_spend.png', dpi=200, bbox_inches='tight'); plt.show()
+    plt.savefig(output_path + 'outputs/plots/barplot_hhdcomp_AND_age_' + value + '.png', dpi=200, bbox_inches='tight')
+    plt.show()
     
 
-# CO2 by household_comp (single, couple, other) x age
+    # both household_comp (single, couple, other) x age
+    temp = cp.copy(results_all)
+    temp['pop'] = temp[pop] * temp['weight']
+    temp[cats] = temp[cats].apply(lambda x: x*temp['weight'])
+    temp = temp.groupby(['hhd_comp_X_age']).sum()
+    temp[cats] = temp[cats].apply(lambda x: x/temp['pop'])
+    temp = temp[cats].reset_index()
 
-results_hhld_comp_age_co2 = pd.DataFrame()
-temp = cp.copy(results_all)
-temp['pop'] = temp[pop] * temp['weight']
-temp[cats_co2] = temp[cats_co2].apply(lambda x: x*temp['weight'])
-temp = temp.groupby(['hhd_comp_X_age']).sum()
-temp[cats_co2] = temp[cats_co2].apply(lambda x: x/temp['pop'])
-temp = temp[cats_co2].reset_index()
-temp['year'] = year
-
-results_hhld_comp_age_co2 = results_hhld_comp_age_co2.append(temp)
-
-results_hhld_comp_age_co2['domestic_energy'] = results_hhld_comp_age_co2['Electricity'] + results_hhld_comp_age_co2['Gas'] + results_hhld_comp_age_co2['Other home energy']
-
-temp = results_hhld_comp_age_co2
-sns.barplot(data=temp, x='hhd_comp_X_age', y='domestic_energy', color='#4472C4'); plt.title('2017-2019'); plt.xticks(rotation=90);
-plt.ylabel('Domestic Energy per Capita (tCO2/capita)'); plt.xlabel('') 
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_co2.png', dpi=200, bbox_inches='tight'); plt.show()
+    temp['domestic_energy'] = temp[cats].sum(1)
     
+    sns.barplot(data=temp, x='hhd_comp_X_age', y='domestic_energy', color='#4472C4')
+    plt.title('2017-2019'); plt.xticks(rotation=90); plt.xlabel('');
+    
+    if value == 'co2':
+        plt.ylabel('Domestic Emissions per Capita (tCO2/capita)')
+    else:
+        plt.ylabel('Domestic Energy Spend per Capita')
 
-temp = results_hhld_comp_age_co2.set_index(['hhd_comp_X_age'])[['Electricity', 'Gas', 'Other home energy']]\
-    .stack().reset_index().rename(columns={'level_1':'Source', 0:'Spend'})
-sns.barplot(data=temp, x='hhd_comp_X_age', y='Spend', hue='Source'); plt.title('2017-2019'); plt.xticks(rotation=90);
-plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel('') 
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_x_source_spend.png', dpi=200, bbox_inches='tight'); plt.show()
- 
-
-
-# Spend by household_comp (single, couple, other) x age
-
-results_hhld_comp_age_exp = pd.DataFrame()
-temp = cp.copy(results_all)
-temp['pop'] = temp[pop] * temp['weight']
-temp[cats_spend] = temp[cats_spend].apply(lambda x: x*temp['weight'])
-temp = temp.groupby(['hhd_comp_X_age']).sum()
-temp[cats_spend] = temp[cats_spend].apply(lambda x: x/temp['pop'])
-temp = temp[cats_spend].reset_index()
-temp['year'] = year
-
-results_hhld_comp_age_exp = results_hhld_comp_age_exp.append(temp)
-
-results_hhld_comp_age_exp['domestic_energy'] = results_hhld_comp_age_exp['Spend_Electricity'] + results_hhld_comp_age_exp['Spend_Gas'] + results_hhld_comp_age_exp['Spend_Other home energy']
-temp = results_hhld_comp_age_exp
-
-sns.barplot(data=temp, x='hhd_comp_X_age', y='domestic_energy', color='#4472C4'); plt.title('2017-2019'); plt.xticks(rotation=90); 
-plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel('');
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_spend.png', dpi=200, bbox_inches='tight'); plt.show()
-
-
-temp = results_hhld_comp_age_exp.set_index(['hhd_comp_X_age'])[['Spend_Electricity', 'Spend_Gas', 'Spend_Other home energy']]\
-    .stack().reset_index().rename(columns={'level_1':'Source', 0:'CO2'})
-sns.barplot(data=temp, x='hhd_comp_X_age', y='CO2', hue='Source'); plt.title('2017-2019'); plt.xticks(rotation=90);
-plt.ylabel('Domestic Energy Spend per Capita'); plt.xlabel('') 
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(output_path + 'outputs/plots/hhld_comp_x_age_x_source_spend.png', dpi=200, bbox_inches='tight'); plt.show()
- 
+    plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
+    plt.savefig(output_path + 'outputs/plots/barplot_hhld_comp_X_age_' + value + '.png', dpi=200, bbox_inches='tight'); plt.show()
+    
+   
 
 # share of house
 results_house_type = pd.DataFrame()    

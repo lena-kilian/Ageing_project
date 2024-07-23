@@ -20,15 +20,8 @@ import pathlib
 
 path = str(pathlib.Path().resolve())
 
-if sys.platform[:3] == 'win' and 'ds.leeds.ac.uk' in path:
-    data_path = 'O:/UKMRIO_Data/data/'
-    output_path = 'O:/geolki/Ageing/'
-elif sys.platform[:3] == 'win' and 'ds.leeds.ac.uk' not in path:
-    data_path = 'C:/Users/geolki/Documents/Analysis/data/'
-    output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
-else:
-    data_path = r'/Users/lenakilian/Documents/Ausbildung/UoLeeds/PhD/Analysis/data/'
-    output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
+data_path = 'O:/UKMRIO_Data/data/'
+output_path = 'O:/geolki/Ageing/'
 
 
 years = list(range(2017, 2020))
@@ -39,51 +32,42 @@ coicop_lookup_dict = dict(zip(coicop_lookup['Coicop_3'], coicop_lookup['Desc_ful
 
 lcfs = {}
 for year in years:
-    print(year)
     lcfs[year] = lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/');
     print(year)
     
-#lcfs = {year: lcfs_import.import_lcfs(year, coicop_lookup, data_path + 'raw/LCFS/') for year in years}
 
-win_sd = 2.5
 # add household composition for households of interest
 for year in years:
     spend_data = lcfs[year].loc[:,'1.1.1.1.1':].apply(lambda x: x*(365.25/7))
-    
-    '''
-    spend_data = spend_data.apply(lambda x: x/(lcfs[year]['no_people'] * lcfs[year]['weight']))
 
-    desc = spend_data.describe()
-    for item in spend_data.loc[:,'4.5.1.1.1.1':'4.5.5.1.1'].columns.tolist():
-        min_val = desc.loc['mean', item] - (4* desc.loc['std', item])
-        max_val = desc.loc['mean', item] + (4* desc.loc['std', item])
-    
-        spend_data.loc[spend_data[item] < min_val, item] = min_val
-        spend_data.loc[spend_data[item] > max_val, item] = max_val
-        
-    spend_data = spend_data.apply(lambda x: x * (lcfs[year]['no_people'] * lcfs[year]['weight']))
-    '''
-    
     # socio-demographic vaiables
     person_data = lcfs[year].loc[:,:'1.1.1.1.1'].iloc[:,:-1]
     
     # add single/couple variable
     person_data['household_comp'] = 'other'
     person_data.loc[(person_data['no_people'] == 1), 'household_comp'] = 'single'
-    person_data.loc[(person_data['no_people'] == 2) & (person_data['partners_spouses'] == 1), 'household_comp'] = 'couple'
+    person_data.loc[(person_data['age_youngest'] > 17) & 
+                    (person_data['no_people'] == 2) & 
+                    (person_data['partners_spouses'] > 0), 'household_comp'] = 'couple'
 
     
     # add age variable - everyone is aged 65+, but at least one person in under 75
     person_data['age_group'] = 'younger'
-    person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_oldest'] < 75), 'age_group'] = '65+'
+    person_data.loc[(person_data['age_youngest'] >= 65), 'age_group'] = '65+'
     person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_oldest'] >= 75), 'age_group'] = '75+'
+    
+    
+    # add age variable - everyone is aged 65+, but at least one person in under 75
+    person_data['age_hrp'] = 'younger'
+    person_data.loc[(person_data['age hrp'] >= 65), 'age_hrp'] = '65+'
+    person_data.loc[(person_data['age hrp'] >= 75), 'age_hrp'] = '75+'
    
     # add 'other' to not studied groups for dwelling
     person_data['dwelling_type'] = person_data['category of dwelling']
  
     # filter relevant columns
     person_data = person_data[['GOR', 'OA class 3',  # geographic
-                               'household_comp', 'age_group', 'dwelling_type', 'age_oldest', 'age_youngest', # analytical demographic # 'gender', 'occupancy_rate', 'disability_care', 'disability_mobility'
+                               'household_comp', 'age_group', 'age_hrp', 'dwelling_type', 'age_oldest', 'age_youngest', # analytical demographic # 'gender', 'occupancy_rate', 'disability_care', 'disability_mobility'
                                'income tax', 'Income anonymised', 'home_ownership', 'rooms in accommodation', 'rooms used solely by household', # general demographic
                                'weight', 'no_people', 'OECD scale']] # analytical
     
