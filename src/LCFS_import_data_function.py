@@ -85,10 +85,11 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     person_data['gender_age_all'] = [[x] for x in person_data['gender_age_all']] 
     # edit ages so they get added as list in one column - to keep individual ages, rather than get sum of all ages
     person_data['age_all'] = [[x] for x in person_data['age_all']] 
+    # code is 1 for partners/spouses cohabiting, make all others 0 then sum >1 will be partners
+    person_data.loc[person_data['partners_spouses'] != 1, 'partners_spouses'] = 0
     # get sum
     person_data = person_data.sum(axis=0, level='case', skipna=True)
-    # code is 0 if no partners or spouses in household. Therefore can make a binary, making all with sum 0 False (0) and all with sum >0 True (1)
-    person_data.loc[person_data['partners_spouses'] > 0, 'partners_spouses'] = 1
+    
     # sort gender_all and age_all alphabetically to more easily compare between households
     new_age = []; new_gender = []
     for i in range(len(person_data)):

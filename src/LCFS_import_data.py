@@ -48,13 +48,13 @@ for year in years:
     person_data.loc[(person_data['no_people'] == 1), 'household_comp'] = 'single'
     person_data.loc[(person_data['age_youngest'] > 17) & 
                     (person_data['no_people'] == 2) & 
-                    (person_data['partners_spouses'] > 0), 'household_comp'] = 'couple'
+                    (person_data['partners_spouses'] == 1), 'household_comp'] = 'couple'
 
     
     # add age variable - everyone is aged 65+, but at least one person in under 75
     person_data['age_group'] = 'younger'
-    person_data.loc[(person_data['age_youngest'] >= 65), 'age_group'] = '65+'
-    person_data.loc[(person_data['age_youngest'] >= 65) & (person_data['age_oldest'] >= 75), 'age_group'] = '75+'
+    person_data.loc[(person_data['age_oldest'] >= 65), 'age_group'] = '65+'
+    person_data.loc[(person_data['age_oldest'] >= 75), 'age_group'] = '75+'
     
     
     # add age variable - everyone is aged 65+, but at least one person in under 75
