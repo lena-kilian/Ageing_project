@@ -42,6 +42,10 @@ hhd_co2, multipliers = estimate_emissions.make_footprint(hhdspend, data_path)
 keep = {'4.5.1':'4.5.1 Electricity', '4.5.2':'4.5.2 Gas', '4.5.3':'4.5.3 Liquid fuels', '4.5.4':'4.5.4 Solid fuels', '4.5.5':'4.5.5 Heat energy', 
         '7.2.2':'7.2.2 Fuels and lubricants for personal transport equipment'}
 
+region_dict = {1:'North East', 2:'North West and Merseyside', 3:'Yorkshire and the Humber', 4:'East Midlands',
+               5:'West Midlands', 6:'Eastern', 7:'London', 8:'South East', 9:'South West', 10:'Wales',
+               11:'Scotland', 12:'Northern Ireland'}
+
 hhd_exp = {}
 for year in years:
     temp = cp.copy(hhdspend[year])
@@ -57,7 +61,9 @@ idx = hhd_co2[years[0]].columns.tolist()
 for year in years:
     hhd_co2[year] = hhd_co2[year].fillna(0).apply(lambda x: x/people[year]['weight'])
     hhd_co2[year] = people[year].join(hhd_co2[year])
-    
+
+
+output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 # save household results
 with pd.ExcelWriter(output_path + 'outputs/CO2_by_hhds.xlsx') as writer:
     for year in years:

@@ -100,6 +100,7 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     # extract lowest and highest ages
     person_data['age_youngest'] = [min(x) for x in person_data['age_all']]
     person_data['age_oldest'] = [max(x) for x in person_data['age_all']]
+    person_data['age_all'] = [x for x in person_data['age_all']]
         
     # clean up household_variables
     if len(household_dict.keys()) > 1:

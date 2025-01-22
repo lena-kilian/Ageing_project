@@ -9,10 +9,10 @@ Aggregating expenditure groups for LCFS by OAC x Region Profiles & UK Supergroup
 """
 
 import pandas as pd
-import copy as cp
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import copy as cp
 
 # set working directory
 # make different path depending on operating system
@@ -22,6 +22,61 @@ output_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_pro
 results = pd.read_excel(output_path + 'outputs/CO2_by_hhds.xlsx', sheet_name=None, index_col='case')
 
 years = list(results.keys())
+
+summary = pd.DataFrame()
+keep = ['Income anonymised', 'rooms in accommodation', 'no_people']
+for year in years:
+    temp = results[year].groupby(['age_group', 'household_comp']).describe()[keep].swaplevel(axis=1)[['count', 'mean']].loc[:,('count', 'no_people'):]
+    temp2 = cp.copy(results[year])
+    temp2['pop'] = temp2['no_people'] * temp2['weight'] / 1000
+    temp2['age_all'] = temp2['age_all'].str.replace('[', '').str.replace(']', '').str.split(', ')
+    
+    ages = pd.DataFrame(temp2.set_index(['age_group', 'household_comp'])['age_all'].apply(pd.Series).stack().astype(int)).rename(columns={0:'all'})
+    ages['idx'] = range(len(ages)); ages = ages.set_index('idx', append=True)
+    ages['adults'] = np.nan
+    ages.loc[ages['all'] >= 16, 'adults'] = ages['all']
+    ages['children'] = np.nan
+    ages.loc[ages['all'] < 16, 'children'] = ages['all']
+    ages = ages.mean(axis=0, level=[0, 1], skipna=True)
+    
+    temp2['age_all'] = temp2['age_all'].astype(str)
+    temp2 = temp2[['age_group', 'household_comp', 'pop']]
+    temp2 = temp2.groupby(['age_group', 'household_comp']).sum()[['pop']]
+    
+    temp = temp.join(temp2).join(ages).reset_index()
+    temp['year'] = year
+    summary = summary.append(temp)
+summary = summary.set_index(['age_group', 'household_comp', 'year']).unstack('year')
+
+summary_all = pd.DataFrame()
+keep = ['Income anonymised', 'rooms in accommodation', 'no_people']
+for year in years:
+    temp = cp.copy(results[year])
+    temp['year'] = year
+    summary_all = summary_all.append(temp)
+
+temp = summary_all.groupby(['age_group', 'household_comp']).describe()[keep].swaplevel(axis=1)[['count', 'mean']].loc[:,('count', 'no_people'):]
+temp2 = cp.copy(summary_all)
+temp2['pop'] = temp2['no_people'] * temp2['weight'] / 1000
+temp2['age_all'] = temp2['age_all'].str.replace('[', '').str.replace(']', '').str.split(', ')
+
+ages = pd.DataFrame(temp2.set_index(['age_group', 'household_comp'])['age_all'].apply(pd.Series).stack().astype(int)).rename(columns={0:'all'})
+ages['idx'] = range(len(ages)); ages = ages.set_index('idx', append=True)
+ages['adults'] = np.nan
+ages.loc[ages['all'] >= 16, 'adults'] = ages['all']
+ages['children'] = np.nan
+ages.loc[ages['all'] < 16, 'children'] = ages['all']
+ages = ages.mean(axis=0, level=[0, 1], skipna=True)
+
+temp2['age_all'] = temp2['age_all'].astype(str)
+temp2 = temp2[['age_group', 'household_comp', 'pop']]
+temp2 = temp2.groupby(['age_group', 'household_comp']).sum()[['pop']]
+
+summary_all = temp.join(temp2).join(ages).reset_index()
+
+
+
+
 
 expenditure = {}
 for year in years:
