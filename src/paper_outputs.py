@@ -135,7 +135,7 @@ for item in list(cat_dict_exp.values()):
         cats_spend.append('Spend_' + item)
 
 # CO2e by household_comp (single, couple, other)
-
+'''
 results_hhld_comp_co2 = pd.DataFrame()
 for year in years:
     temp = results[year]
@@ -172,7 +172,7 @@ results_hhld_comp_exp['Spend_domestic_energy'] = results_hhld_comp_exp['Spend_El
 for year in years:
     temp = results_hhld_comp_exp.loc[results_hhld_comp_exp['year'] == year]
     sns.barplot(data=temp, x='household_comp', y='Spend_domestic_energy'); plt.title(str(year)); plt.show()
-    
+'''   
 
 # CO2 by household_comp (single, couple, other) x age
 
