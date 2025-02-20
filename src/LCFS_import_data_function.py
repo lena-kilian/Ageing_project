@@ -81,10 +81,13 @@ def import_lcfs(year, coicop_lookup, lcf_filepath):
     person_data['gender_all'] = person_data['gender_all'].fillna(0).map({1:'M', 2:'W', 0:'NA'})
     person_data['gender_age_all'] = person_data['gender_all'] + '_' + person_data['age_all'].astype(str) # make variable combining gender and age
     # make list vars
+    person_data['gender_age_all'] = person_data['age_all'].astype(str) + '_' + person_data['gender_all']
+    person_data['gender_age_all'] = [[x] for x in person_data['gender_age_all']] 
     person_data['gender_all'] = [[x] for x in person_data['gender_all']] 
     person_data['gender_age_all'] = [[x] for x in person_data['gender_age_all']] 
     # edit ages so they get added as list in one column - to keep individual ages, rather than get sum of all ages
     person_data['age_all'] = [[x] for x in person_data['age_all']] 
+    
     # code is 1 for partners/spouses cohabiting, make all others 0 then sum >1 will be partners
     person_data.loc[person_data['partners_spouses'] != 1, 'partners_spouses'] = 0
     # get sum

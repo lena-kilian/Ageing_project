@@ -22,15 +22,16 @@ import matplotlib.patches as mpatches
 output_path = 'O:/geolki/Ageing/'
 plot_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
 
-years = list(range(2017, 2020))
+years = [2019]
 
 width_scale = 0.4
 space = 0.2
 
-results = {}; expenditure = {}
+results = {}; expenditure = {}; count = {}
 for year in years:
     results[year] = pd.read_excel(output_path + 'outputs/CO2_by_hhds.xlsx', sheet_name=str(year), index_col='case')
     expenditure[year] = pd.read_excel(output_path + 'outputs/EXP_by_hhds.xlsx', sheet_name=str(year), index_col='case')
+    count[year] = results[year].groupby(['household_comp', 'age_group']).count()[['GOR']]
 
 pop = 'no_people' # 'OECD scale' #
 
@@ -78,6 +79,20 @@ for year in years:
     temp = cp.copy(results[year])
     temp['year'] = year
     results_all = results_all.append(temp)
+    
+
+survey_count = results_all.groupby(['hhd_comp_X_age', 'year']).count()[['GOR']]
+
+check = results_all.groupby(['hhd_comp_X_age', 'year']).describe()\
+    .swaplevel(axis=1)[['mean', 'min', 'max', 'count']]\
+        .swaplevel(axis=1)[['age_youngest', 'age_oldest', 'Electricity', 'Gas', 'no_people']]
+        
+check2 = results_all.set_index(['hhd_comp_X_age', 'year'])
+check2['age_all'] = check2['age_all'].str.replace('[', '').str.replace(']', '').str.split(', ')
+check2 = pd.DataFrame(check2['age_all'].tolist(), index=check2.index).stack().reset_index().drop('level_2', axis=1)
+check2[0] = check2[0].astype(int)
+check2 = check2.loc[check2[0] >= 18]
+check2 = check2.groupby(['hhd_comp_X_age', 'year']).mean() 
 
 results_all['domestic_energy_co2'] = results_all[cats_co2].sum(1)
 results_all['domestic_energy_spend'] = results_all[cats_spend].sum(1)
