@@ -12,7 +12,6 @@ import pandas as pd
 import copy as cp
 import seaborn as sns
 import matplotlib.pyplot as plt
-import sys
 import numpy as np
 import matplotlib.patches as mpatches
 
@@ -26,6 +25,9 @@ years = [2019]
 
 width_scale = 0.4
 space = 0.2
+
+
+plot_cols = ['#E1812C', '#3274A1']
 
 results = {}; expenditure = {}; count = {}
 for year in years:
@@ -141,7 +143,7 @@ means_all['hhld_comp'] = pd.Categorical(means_all['hhld_comp'], categories=[x.ti
 
 # single axis 
 # CO2
-sns.barplot(data=means_all.reset_index(), x='hhld_comp', y='domestic_energy_co2', hue='Country')
+sns.barplot(data=means_all.reset_index(), x='hhld_comp', y='domestic_energy_co2', hue='Country', palette=sns.color_palette(plot_cols))
 plt.xticks(rotation=90); plt.xlabel('');
 plt.ylabel('Domestic Emissions per Capita (tCO2/capita)')
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
@@ -151,7 +153,7 @@ plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_co2.png', dpi=200, bbox_inc
 means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])[['domestic_energy_spend']].unstack('Country')
 means_scaled = means_scaled.apply(lambda x: x/x.max())
 means_scaled = means_scaled.stack('Country').reset_index()
-sns.barplot(data=means_scaled.reset_index(), x='hhld_comp', y='domestic_energy_spend', hue='Country')
+sns.barplot(data=means_scaled.reset_index(), x='hhld_comp', y='domestic_energy_spend', hue='Country', palette=sns.color_palette(plot_cols))
 plt.xticks(rotation=90); plt.xlabel('');
 plt.ylabel('Domestic Energy Spend per Capita Rescaled')
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
@@ -161,7 +163,7 @@ plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_spend_scaled.png', dpi=200,
 means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])[['dwelling_size']].unstack('Country')
 means_scaled = means_scaled.apply(lambda x: x/x.max())
 means_scaled = means_scaled.stack('Country').reset_index()
-sns.barplot(data=means_scaled.reset_index(), x='hhld_comp', y='dwelling_size', hue='Country')
+sns.barplot(data=means_scaled.reset_index(), x='hhld_comp', y='dwelling_size', hue='Country', palette=sns.color_palette(plot_cols))
 plt.xticks(rotation=90); plt.xlabel('');
 plt.ylabel('Dwelling Size per Capita Rescaled')
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
@@ -289,29 +291,28 @@ plt.savefig(plot_path + 'outputs/plots/income_uk_jp_group_sep2.png', dpi=200, bb
 
 # Co2
 means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])['domestic_energy_co2'].unstack('Country').reset_index()
-cols = ['#DE832A', '#3572A0']
 
 fig, ax = plt.subplots(sharex=True)
 legend_patches = []
 
-sns.barplot(ax=ax, data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=cols[0])
+sns.barplot(ax=ax, data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=plot_cols[0])
 
 for bar in ax.containers[0]:
     x = bar.get_x()
     w = bar.get_width()
     bar.set_x(x + space/2)
     bar.set_width(bar.get_width() * width_scale)
-legend_patches.append(mpatches.Patch(color=cols[0], label='Japan'))
+legend_patches.append(mpatches.Patch(color=plot_cols[0], label='Japan'))
 ax.set_ylabel('Japan Domestic Energy Emissions per Capita (tCO2/capita)')
 
 ax2 = ax.twinx()
-sns.barplot(ax=ax2,  data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=cols[1])
+sns.barplot(ax=ax2,  data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=plot_cols[1])
 for bar in ax2.containers[0]:
     x = bar.get_x()
     w = bar.get_width()
     bar.set_x(x + w * (1- width_scale) - space/2)
     bar.set_width(w * width_scale)
-legend_patches.append(mpatches.Patch(color=cols[1], label='UK'))
+legend_patches.append(mpatches.Patch(color=plot_cols[1], label='UK'))
 ax2.set_ylabel('UK Domestic Energy Emissions per Capita (tCO2/capita)')
 
 plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2, title='Country', handles=legend_patches)
@@ -328,24 +329,24 @@ cols = ['#DE832A', '#3572A0']
 fig, ax = plt.subplots(sharex=True)
 legend_patches = []
 
-sns.barplot(ax=ax, data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=cols[0])
+sns.barplot(ax=ax, data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=plot_cols[0])
 
 for bar in ax.containers[0]:
     x = bar.get_x()
     w = bar.get_width()
     bar.set_x(x + space/2)
     bar.set_width(bar.get_width() * width_scale)
-legend_patches.append(mpatches.Patch(color=cols[0], label='Japan'))
+legend_patches.append(mpatches.Patch(color=plot_cols[0], label='Japan'))
 ax.set_ylabel('Japan Domestic Energy Spend per Capita (Yen/capita)')
 
 ax2 = ax.twinx()
-sns.barplot(ax=ax2,  data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=cols[1])
+sns.barplot(ax=ax2,  data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=plot_cols[1])
 for bar in ax2.containers[0]:
     x = bar.get_x()
     w = bar.get_width()
     bar.set_x(x + w * (1- width_scale) - space/2)
     bar.set_width(w * width_scale)
-legend_patches.append(mpatches.Patch(color=cols[1], label='UK'))
+legend_patches.append(mpatches.Patch(color=plot_cols[1], label='UK'))
 ax2.set_ylabel('UK Domestic Energy Spend per Capita (GBP/capita)')
 
 plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2, title='Country', handles=legend_patches)
@@ -361,24 +362,24 @@ cols = ['#DE832A', '#3572A0']
 
 fig, ax = plt.subplots(sharex=True)
 legend_patches = []
-sns.barplot(ax=ax, data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=cols[0])
+sns.barplot(ax=ax, data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=plot_cols[0])
 
 for bar in ax.containers[0]:
     x = bar.get_x()
     w = bar.get_width()
     bar.set_x(x + space/2)
     bar.set_width(bar.get_width() * width_scale)
-legend_patches.append(mpatches.Patch(color=cols[0], label='Japan'))
+legend_patches.append(mpatches.Patch(color=plot_cols[0], label='Japan'))
 ax.set_ylabel('Japan Area of Dwelling per Capita (m2/capita)')
 
 ax2 = ax.twinx()
-sns.barplot(ax=ax2,  data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=cols[1])
+sns.barplot(ax=ax2,  data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=plot_cols[1])
 for bar in ax2.containers[0]:
     x = bar.get_x()
     w = bar.get_width()
     bar.set_x(x + w * (1- width_scale) - + space/2)
     bar.set_width(w * width_scale)
-legend_patches.append(mpatches.Patch(color=cols[1], label='UK'))
+legend_patches.append(mpatches.Patch(color=plot_cols[1], label='UK'))
 ax2.set_ylabel('UK Number of Rooms in Dwelling per Capita')
 
 plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2, title='Country', handles=legend_patches)
