@@ -101,6 +101,8 @@ results_all['domestic_energy_spend'] = results_all[cats_spend].sum(1)
 
 keep = ['hhd_comp_X_age', 'weight', 'no_people', 'Income anonymised',  'rooms in accommodation', 'domestic_energy_co2', 'domestic_energy_spend']
 
+
+# Combined composition 
 means_uk = cp.copy(results_all)[keep]
 means_uk['pop'] = means_uk['no_people'] * means_uk['weight']
 means_uk[['domestic_energy_co2', 'domestic_energy_spend']] = means_uk[['domestic_energy_co2', 'domestic_energy_spend']].apply(lambda x: x*means_uk['weight'])
@@ -137,37 +139,84 @@ means_all = means_uk.append(means_jp).reset_index().rename(columns={'index':'hhl
 means_all['hhld_comp'] = means_all['hhld_comp'].str.replace('_young', ' younger').str.replace('_', ' ').str.title()
 means_all['hhld_comp'] = pd.Categorical(means_all['hhld_comp'], categories=[x.title() for x in order_groups], ordered=True)
 
+
+# Individual composition
+means_uk = pd.DataFrame()
+for item in ['age_group', 'household_comp']:
+    temp = cp.copy(results_all)[keep + [item]]
+    temp['pop'] = temp['no_people'] * temp['weight']
+    temp[['domestic_energy_co2', 'domestic_energy_spend']] = temp[['domestic_energy_co2', 'domestic_energy_spend']].apply(lambda x: x*temp['weight'])
+    temp = temp.groupby([item]).sum()
+    temp[['domestic_energy_co2', 'domestic_energy_spend']] = temp[['domestic_energy_co2', 'domestic_energy_spend']].apply(lambda x: x/temp['pop'])
+    temp['split'] = item
+    
+    temp2 = cp.copy(results_all)[keep + [item]]
+    temp2['pop'] = temp2['no_people'] * temp2['weight']
+    temp2[['rooms in accommodation']] = temp2[['rooms in accommodation']].apply(lambda x: x*temp2['weight'])
+    temp2 = temp2.groupby([item]).sum()
+    temp2['dwelling_size'] = temp2['rooms in accommodation']/temp2['pop']
+    
+    temp = temp.join(temp2[['dwelling_size']])
+    temp = temp.reset_index().rename(columns={item:'group'})
+    temp2['split'] = item
+    
+    means_uk = means_uk.append(temp)
+
+means_uk['Country'] = 'UK'
+
+# import Japan data
+
+means_jp.index = pd.MultiIndex.from_arrays([[x.split('_')[0] for x in means_jp.index], [x.split('_')[1] for x in means_jp.index]])
+
+temp = means_jp.mean(axis=0, level=0)
+temp = temp.reset_index().rename(columns={'index':'group'})
+temp['split'] = 'household_comp'
+
+temp2 = means_jp.mean(axis=0, level=1)
+temp2 = temp2.reset_index().rename(columns={'index':'group'})
+temp2['split'] = 'age_group'
+
+means_jp = temp.append(temp2)
+
+means_jp['Country'] = 'Japan'
+
+means_jp = means_jp
+
+# combine
+
+keep2 = ['Country', 'group', 'split', 'dwelling_size', 'domestic_energy_co2', 'domestic_energy_spend']
+means_split = means_uk[keep2].append(means_jp[keep2])
+means_split['group'] = means_split['group'].str.replace('young', 'younger').str.replace('youngerer', 'younger').str.title()
+
 #################
 ## Single Axis ## 
 #################
 
 # single axis 
-# CO2
+# CO2 combined composition
 sns.barplot(data=means_all.reset_index(), x='hhld_comp', y='domestic_energy_co2', hue='Country', palette=sns.color_palette(plot_cols))
 plt.xticks(rotation=90); plt.xlabel('');
 plt.ylabel('Domestic Emissions per Capita (tCO2/capita)')
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
 plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_co2.png', dpi=200, bbox_inches='tight'); plt.show()
 
-# Spend
-means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])[['domestic_energy_spend']].unstack('Country')
-means_scaled = means_scaled.apply(lambda x: x/x.max())
-means_scaled = means_scaled.stack('Country').reset_index()
-sns.barplot(data=means_scaled.reset_index(), x='hhld_comp', y='domestic_energy_spend', hue='Country', palette=sns.color_palette(plot_cols))
-plt.xticks(rotation=90); plt.xlabel('');
-plt.ylabel('Domestic Energy Spend per Capita Rescaled')
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_spend_scaled.png', dpi=200, bbox_inches='tight'); plt.show()
-
-# Dwelling size
-means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])[['dwelling_size']].unstack('Country')
-means_scaled = means_scaled.apply(lambda x: x/x.max())
-means_scaled = means_scaled.stack('Country').reset_index()
-sns.barplot(data=means_scaled.reset_index(), x='hhld_comp', y='dwelling_size', hue='Country', palette=sns.color_palette(plot_cols))
-plt.xticks(rotation=90); plt.xlabel('');
-plt.ylabel('Dwelling Size per Capita Rescaled')
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_dwelling_scaled.png', dpi=200, bbox_inches='tight'); plt.show()
+# CO2 split composition
+plot_data = means_split[['Country', 'group', 'split', 'domestic_energy_co2']]
+fig, axs = plt.subplots(ncols=2, figsize=(10, 5))
+for i in range(2):
+    split = plot_data['split'].unique()[i]
+    temp = plot_data.loc[plot_data['split'] == split].sort_values('Country')
+    sns.barplot(ax=axs[i], data=temp, x='group', y='domestic_energy_co2', hue='Country', palette=sns.color_palette(plot_cols))
+    axs[i].set_ylabel('Domestic Emissions per Capita (tCO2/capita)')  
+axs[0].set_xlabel('Age Group');
+axs[1].set_xlabel('Household Composition');
+axs[0].get_legend().remove()
+legend_patches = []
+legend_patches.append(mpatches.Patch(color=plot_cols[0], label='Japan'))
+legend_patches.append(mpatches.Patch(color=plot_cols[1], label='UK'))
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2, title='Country', handles=legend_patches)
+axs[1].set_ylabel('')
+plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_co2_split.png', dpi=200, bbox_inches='tight'); plt.show()
 
 
 # Income 
@@ -209,57 +258,6 @@ means_scaled['hhld_comp'] = pd.Categorical(means_scaled['hhld_comp'], categories
 
 means_scaled['Income Group'] = (means_scaled['Income Group'].astype(int) + 1).astype(str)
 
-
-
-
-
-fig, ax = plt.subplots()
-legend_uk = []; legend_jp = []
-
-n_colors = 7
-palettes = [sns.color_palette('coolwarm', n_colors),  # sns.diverging_palette(570, 740, l=50, n=n_colors, sep=1, center="light")
-            sns.color_palette('PRGn', n_colors)] ##['viridis', ]
-
-# Japan
-temp = means_scaled.loc[means_scaled['Country'] == 'Japan'].sort_values('Income Group', ascending=False)
-jp_cols = palettes[1]
-for i in temp['Income Group'].unique():
-    n = 7-int(i)
-    temp2 = temp.loc[temp['Income Group'] == i]
-    sns.barplot(ax=ax, data=temp2, x='hhld_comp', y='Percent', color=jp_cols[n])
-    for bar in ax.containers[7-int(i)]:
-        x = bar.get_x()
-        w = bar.get_width()
-        bar.set_x(x + space/2)
-        bar.set_width(bar.get_width() * width_scale)
-    legend_jp.append(mpatches.Patch(color=jp_cols[n], label=jp_dict[float(i)-1]))
-
-# UK
-temp = means_scaled.loc[means_scaled['Country'] == 'UK'].sort_values('Income Group', ascending=False)
-uk_cols = palettes[0]
-for i in temp['Income Group'].unique():
-    n = 7-int(i)
-    temp2 = temp.loc[temp['Income Group'] == i]
-    sns.barplot(ax=ax, data=temp2, x='hhld_comp', y='Percent', color=uk_cols[n])
-    for bar in ax.containers[14-int(i)]:
-        x = bar.get_x()
-        w = bar.get_width()
-        bar.set_x(x + w * (1- width_scale) - space/2)
-        bar.set_width(w * width_scale)
-    legend_uk.append(mpatches.Patch(color=uk_cols[n], label=uk_dict[int(i)-1]))
- 
-ax2 = ax.twinx()
-ax2.get_yaxis().set_visible(False)
-
-ax.legend(bbox_to_anchor=(1,0.5), title='UK income (thousand GBP)', handles=legend_uk)
-ax2.legend(bbox_to_anchor=(1,1.1), title='Japan Income (million Yen)', handles=legend_jp)
-     
-ax.tick_params(axis='x', labelrotation=90); ax.set_xlabel(''); ax.set_ylim(0, 100)
-ax.set_ylabel('Percentage of Households (%)' );
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(plot_path + 'outputs/plots/income_uk_jp_group.png', dpi=200, bbox_inches='tight'); plt.show()
-
-
 # 'coolwarm', 'PRGn'
 fig, axs = plt.subplots(nrows=2, sharex=True, sharey=True, figsize=(8, 8))
 # Japan
@@ -289,42 +287,8 @@ plt.savefig(plot_path + 'outputs/plots/income_uk_jp_group_sep2.png', dpi=200, bb
 ## Twin Axis ## 
 ###############
 
-# Co2
-means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])['domestic_energy_co2'].unstack('Country').reset_index()
-
-fig, ax = plt.subplots(sharex=True)
-legend_patches = []
-
-sns.barplot(ax=ax, data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=plot_cols[0])
-
-for bar in ax.containers[0]:
-    x = bar.get_x()
-    w = bar.get_width()
-    bar.set_x(x + space/2)
-    bar.set_width(bar.get_width() * width_scale)
-legend_patches.append(mpatches.Patch(color=plot_cols[0], label='Japan'))
-ax.set_ylabel('Japan Domestic Energy Emissions per Capita (tCO2/capita)')
-
-ax2 = ax.twinx()
-sns.barplot(ax=ax2,  data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=plot_cols[1])
-for bar in ax2.containers[0]:
-    x = bar.get_x()
-    w = bar.get_width()
-    bar.set_x(x + w * (1- width_scale) - space/2)
-    bar.set_width(w * width_scale)
-legend_patches.append(mpatches.Patch(color=plot_cols[1], label='UK'))
-ax2.set_ylabel('UK Domestic Energy Emissions per Capita (tCO2/capita)')
-
-plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2, title='Country', handles=legend_patches)
-
-ax.tick_params(axis='x', labelrotation=90); ax.set_xlabel('');
-plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
-plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_co2_twin.png', dpi=200, bbox_inches='tight'); plt.show()
-
-
 # Spend
 means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])['domestic_energy_spend'].unstack('Country').reset_index()
-cols = ['#DE832A', '#3572A0']
 
 fig, ax = plt.subplots(sharex=True)
 legend_patches = []
@@ -358,7 +322,6 @@ plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_spend_twin.png', dpi=200, b
 
 # Dwelling
 means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])['dwelling_size'].unstack('Country').reset_index()
-cols = ['#DE832A', '#3572A0']
 
 fig, ax = plt.subplots(sharex=True)
 legend_patches = []
@@ -386,4 +349,44 @@ plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2, title='Country
 ax.tick_params(axis='x', labelrotation=90); ax.set_xlabel('');
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 
 plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_dwelling_twin.png', dpi=200, bbox_inches='tight'); plt.show()
+
+
+
+# for SI by composition split
+width_scale = 0.375
+for i in range(2):
+    fig, ax = plt.subplots(sharex=True, figsize=(5, 5))
+    legend_patches = []
+
+    plot_data = means_split[['Country', 'group', 'split', 'domestic_energy_spend']]
+    split = plot_data['split'].unique()[i]
+    temp = plot_data.loc[plot_data['split'] == split].sort_values('Country')
+    
+    temp_jp = temp.loc[temp['Country'] == 'Japan']
+    sns.barplot(ax=ax, data=temp_jp, x='group', y='domestic_energy_spend', color=plot_cols[0])
+    for bar in ax.containers[0]:
+        x = bar.get_x()
+        w = bar.get_width()
+        bar.set_x(x + space/2)
+        bar.set_width(bar.get_width() * width_scale)
+    legend_patches.append(mpatches.Patch(color=plot_cols[0], label='Japan'))
+    ax.set_ylabel('Japan Domestic Energy Spend per Capita (Yen/capita)')
+    
+    temp_uk = temp.loc[temp['Country'] == 'UK']
+    ax2 = ax.twinx()
+    sns.barplot(ax=ax2,  data=temp_uk, x='group', y='domestic_energy_spend', color=plot_cols[1])
+    for bar in ax2.containers[0]:
+        x = bar.get_x()
+        w = bar.get_width()
+        bar.set_x(x + w * (1- width_scale) - space/2)
+        bar.set_width(w * width_scale)
+    legend_patches.append(mpatches.Patch(color=plot_cols[1], label='UK'))
+    ax2.set_ylabel('UK Domestic Energy Spend per Capita (GBP/capita)')
+    
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2, title='Country', handles=legend_patches)
+    
+    ax.set_xlabel(['Age Group', 'Household Composition'][i]);
+    plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_spend_twin_split_' + split + '.png', dpi=200, bbox_inches='tight'); plt.show()
+    
+
 
