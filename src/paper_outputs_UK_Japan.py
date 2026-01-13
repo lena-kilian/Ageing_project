@@ -19,7 +19,7 @@ import matplotlib.patches as mpatches
 # make different path depending on operating system
 
 output_path = 'O:/geolki/Ageing/'
-plot_path = 'C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/'
+plot_path = 'C:/Users/geolki/OneDrive - Universiteit Leiden/Projects/2023_Ageing project/analysis/'
 
 years = [2019]
 
@@ -119,7 +119,7 @@ means_uk = means_uk[['domestic_energy_co2', 'domestic_energy_spend']].join(temp[
 means_uk['Country'] = 'UK'
 
 # import Japan data
-data_jp = pd.read_excel('C:/Users/geolki/OneDrive - University of Leeds/Postdoc/Ageing_project/analysis/outputs/ghg_by_hhd_types_202501_Japan_CLEAN.xlsx', sheet_name=None)
+data_jp = pd.read_excel(plot_path + 'outputs/ghg_by_hhd_types_202501_Japan_CLEAN.xlsx', sheet_name=None)
 jp_energy = data_jp['dom_energy_CO2'].set_index(['Unnamed: 0'])
 jp_energy.columns = ['domestic_energy_co2', 'CO2_se', 'CO2_95_1', 'CO2_95_2']
 
@@ -165,26 +165,12 @@ for item in ['age_group', 'household_comp']:
 means_uk['Country'] = 'UK'
 
 # import Japan data
-
-means_jp.index = pd.MultiIndex.from_arrays([[x.split('_')[0] for x in means_jp.index], [x.split('_')[1] for x in means_jp.index]])
-
-temp = means_jp.mean(axis=0, level=0)
-temp = temp.reset_index().rename(columns={'index':'group'})
-temp['split'] = 'household_comp'
-
-temp2 = means_jp.mean(axis=0, level=1)
-temp2 = temp2.reset_index().rename(columns={'index':'group'})
-temp2['split'] = 'age_group'
-
-means_jp = temp.append(temp2)
-
+means_jp = data_jp['means_groups']
 means_jp['Country'] = 'Japan'
-
-means_jp = means_jp
 
 # combine
 
-keep2 = ['Country', 'group', 'split', 'dwelling_size', 'domestic_energy_co2', 'domestic_energy_spend']
+keep2 = ['Country', 'group', 'split', 'domestic_energy_co2', 'domestic_energy_spend']
 means_split = means_uk[keep2].append(means_jp[keep2])
 means_split['group'] = means_split['group'].str.replace('young', 'younger').str.replace('youngerer', 'younger').str.title()
 
@@ -206,6 +192,12 @@ fig, axs = plt.subplots(ncols=2, figsize=(10, 5))
 for i in range(2):
     split = plot_data['split'].unique()[i]
     temp = plot_data.loc[plot_data['split'] == split].sort_values('Country')
+    
+    if split == 'household_comp' :  
+        temp['group'] = pd.Categorical(temp['group'], categories=['Single', 'Couple', 'Other'], ordered=True)
+    else:
+        temp['group'] = pd.Categorical(temp['group'], categories=['Younger', '65+', '75+'], ordered=True)
+    
     sns.barplot(ax=axs[i], data=temp, x='group', y='domestic_energy_co2', hue='Country', palette=sns.color_palette(plot_cols))
     axs[i].set_ylabel('Domestic Emissions per Capita (tCO2/capita)')  
 axs[0].set_xlabel('Age Group');
@@ -281,6 +273,57 @@ axs[1].set_xlabel('Percentage of Households (%)')
 axs[0].set_xlabel('')
 plt.xlim(0, 100)
 plt.savefig(plot_path + 'outputs/plots/income_uk_jp_group_sep2.png', dpi=200, bbox_inches='tight'); plt.show()
+
+###############
+## Dual plot ## 
+###############
+
+# Spend
+means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])['domestic_energy_spend'].unstack('Country').reset_index()
+
+fig, axs = plt.subplots(ncols=2, nrows=1, figsize=(12, 5))
+legend_patches = []
+
+sns.barplot(ax=axs[0], data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=plot_cols[0])
+sns.barplot(ax=axs[1], data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=plot_cols[1])
+
+axs[0].set_ylabel('Japan Domestic Energy Spend per Capita (Yen/capita)'); 
+axs[1].set_ylabel('UK Domestic Energy Spend per Capita (GBP/capita)')
+axs[0].set_title('Japan')
+axs[1].set_title('UK')
+
+for i in range(2):
+    axs[i].set_xlabel('')
+    axs[i].axvline(2.5, c='k', linestyle=':');
+    axs[i].axvline(5.5, c='k', linestyle=':'); 
+    axs[i].tick_params(axis='x', labelrotation=90); 
+
+plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_spend_dual.png', dpi=200, bbox_inches='tight'); plt.show()
+
+
+
+# Dwelling
+
+means_scaled = cp.copy(means_all).set_index(['Country', 'hhld_comp'])['dwelling_size'].unstack('Country').reset_index()
+
+fig, axs = plt.subplots(ncols=2, nrows=1, figsize=(12, 5))
+legend_patches = []
+
+sns.barplot(ax=axs[0], data=means_scaled.reset_index(), x='hhld_comp', y='Japan', color=plot_cols[0])
+sns.barplot(ax=axs[1], data=means_scaled.reset_index(), x='hhld_comp', y='UK', color=plot_cols[1])
+
+axs[0].set_ylabel('Japan Area of Dwelling per Capita (m2/capita)'); 
+axs[1].set_ylabel('UK Number of Rooms in Dwelling per Capita')
+axs[0].set_title('Japan')
+axs[1].set_title('UK')
+
+for i in range(2):
+    axs[i].set_xlabel('')
+    axs[i].axvline(2.5, c='k', linestyle=':');
+    axs[i].axvline(5.5, c='k', linestyle=':'); 
+    axs[i].tick_params(axis='x', labelrotation=90); 
+
+plt.savefig(plot_path + 'outputs/plots/barplot_jp_up_dwelling_dual.png', dpi=200, bbox_inches='tight'); plt.show()
 
 
 ###############
@@ -361,6 +404,11 @@ for i in range(2):
     plot_data = means_split[['Country', 'group', 'split', 'domestic_energy_spend']]
     split = plot_data['split'].unique()[i]
     temp = plot_data.loc[plot_data['split'] == split].sort_values('Country')
+    
+    if i == 1:    
+        temp['group'] = pd.Categorical(temp['group'], categories=['Single', 'Couple', 'Other'], ordered=True)
+    if i == 0:
+        temp['group'] = pd.Categorical(temp['group'], categories=['Younger', '65+', '75+'], ordered=True)
     
     temp_jp = temp.loc[temp['Country'] == 'Japan']
     sns.barplot(ax=ax, data=temp_jp, x='group', y='domestic_energy_spend', color=plot_cols[0])
