@@ -95,32 +95,35 @@ for i in range(len(income_groups[:-1])):
 
 results_all['Income_pc'] = results_all['Income anonymised'] / results_all['no_people']
 results_all['rooms_pc'] = results_all['rooms in accommodation'] / results_all['no_people']
+results_all['domestic_energy_co2_pc'] = results_all['domestic_energy_co2'] / results_all['no_people']
+results_all['domestic_energy_spend_pc'] = results_all['domestic_energy_spend'] / results_all['no_people']
 
 #########################
 ## Regression analysis ##
 #########################
 
-keep = ['age_group', 'no_people', 'Income anonymised', 'rooms in accommodation', 'domestic_energy_co2', 'domestic_energy_spend']
+keep = ['hhd_comp_X_age', 'Income anonymised', 'rooms in accommodation', 'domestic_energy_co2_pc', 'domestic_energy_spend_pc']
 
 data = results_all[keep]
 
-#dummies_income = pd.get_dummies(data['Income']).astype(float)
-dummies_age = pd.get_dummies(data['age_group']).astype(float).drop(['younger'], axis=1)
+dummies_group = pd.get_dummies(data['hhd_comp_X_age']).astype(float).drop(['single younger'], axis=1)
+#dummies_age = pd.get_dummies(data['age_group']).astype(float).drop(['younger'], axis=1)
+#dummies_size = pd.get_dummies(data['household_comp']).astype(float).drop(['other'], axis=1)
 
-data = data.join(dummies_age).drop(['age_group'], axis=1)
+data = data.join(dummies_group).drop(['hhd_comp_X_age'], axis=1)
 
-x = data.drop(['domestic_energy_co2', 'domestic_energy_spend'], axis=1)
+x = data.drop(['domestic_energy_co2_pc', 'domestic_energy_spend_pc'], axis=1)
 x = sm.add_constant(x)
 
 
 # CO2
-y_co2 = data['domestic_energy_co2']
+y_co2 = data['domestic_energy_co2_pc']
 model_co2 = sm.OLS(y_co2, x).fit()
 model_co2_robust_ses = model_co2.get_robustcov_results(cov_type="HC2")
 print(model_co2_robust_ses.summary())
 
 # Spend
-y_spend = data['domestic_energy_spend']
+y_spend = data['domestic_energy_spend_pc']
 model_spend = sm.OLS(y_spend, x).fit()
 model_spend_robust_ses = model_spend.get_robustcov_results(cov_type="HC2")
 print(model_spend_robust_ses.summary())
