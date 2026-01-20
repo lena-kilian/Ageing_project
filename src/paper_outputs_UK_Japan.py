@@ -180,7 +180,7 @@ means_split['group'] = means_split['group'].str.replace('young', 'younger').str.
 
 # single axis 
 # CO2 combined composition
-sns.barplot(data=means_all.reset_index(), x='hhld_comp', y='domestic_energy_co2', hue='Country', palette=sns.color_palette(plot_cols))
+sns.barplot(data=means_all.reset_index().sort_values('Country'), x='hhld_comp', y='domestic_energy_co2', hue='Country', palette=sns.color_palette(plot_cols))
 plt.xticks(rotation=90); plt.xlabel('');
 plt.ylabel('Domestic Emissions per Capita (tCO2/capita)')
 plt.axvline(2.5, c='k', linestyle=':'); plt.axvline(5.5, c='k', linestyle=':'); 

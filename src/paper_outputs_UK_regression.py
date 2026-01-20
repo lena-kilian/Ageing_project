@@ -12,6 +12,7 @@ import pandas as pd
 import copy as cp
 import statsmodels.api as sm
 
+
 # set working directory
 # make different path depending on operating system
 
@@ -93,8 +94,6 @@ for i in range(len(income_groups[:-1])):
     results_all.loc[(results_all['Income anonymised'] >= income_groups[i]) & (results_all['Income anonymised'] < income_groups[i+1]), 'Income'] = str(income_groups[i]) + '-' +  str(income_groups[i+1])
     results_all.loc[(results_all['Income'] == str(income_groups[i]) + '-' +  str(income_groups[i+1])), 'Income Group'] = i
 
-results_all['Income_pc'] = results_all['Income anonymised'] / results_all['no_people']
-results_all['rooms_pc'] = results_all['rooms in accommodation'] / results_all['no_people']
 results_all['domestic_energy_co2_pc'] = results_all['domestic_energy_co2'] / results_all['no_people']
 results_all['domestic_energy_spend_pc'] = results_all['domestic_energy_spend'] / results_all['no_people']
 
@@ -102,29 +101,45 @@ results_all['domestic_energy_spend_pc'] = results_all['domestic_energy_spend'] /
 ## Regression analysis ##
 #########################
 
-keep = ['hhd_comp_X_age', 'Income anonymised', 'rooms in accommodation', 'domestic_energy_co2_pc', 'domestic_energy_spend_pc']
+keep = ['hhd_comp_X_age', 'weight', 'Income anonymised', 'rooms in accommodation', 'domestic_energy_co2_pc', 'domestic_energy_spend_pc']
 
 data = results_all[keep]
 
-dummies_group = pd.get_dummies(data['hhd_comp_X_age']).astype(float).drop(['single younger'], axis=1)
+dummies_group = pd.get_dummies(data['hhd_comp_X_age']).astype(float).drop(['other younger'], axis=1)
 #dummies_age = pd.get_dummies(data['age_group']).astype(float).drop(['younger'], axis=1)
 #dummies_size = pd.get_dummies(data['household_comp']).astype(float).drop(['other'], axis=1)
 
 data = data.join(dummies_group).drop(['hhd_comp_X_age'], axis=1)
 
-x = data.drop(['domestic_energy_co2_pc', 'domestic_energy_spend_pc'], axis=1)
+w = data['weight']
+
+x = data.drop(['domestic_energy_co2_pc', 'domestic_energy_spend_pc', 'weight'], axis=1)
 x = sm.add_constant(x)
 
 
 # CO2
 y_co2 = data['domestic_energy_co2_pc']
-model_co2 = sm.OLS(y_co2, x).fit()
-model_co2_robust_ses = model_co2.get_robustcov_results(cov_type="HC2")
-print(model_co2_robust_ses.summary())
+
+ols_co2 = sm.OLS(y_co2, x).fit()
+ols_co2_robust_ses = ols_co2.get_robustcov_results(cov_type="HC2")
+print(ols_co2_robust_ses.summary())
+
+wls_co2 = sm.WLS(y_co2, x, weights=w).fit()
+wls_co2_robust_ses = wls_co2.get_robustcov_results(cov_type="HC2")
+print(wls_co2_robust_ses.summary())
 
 # Spend
 y_spend = data['domestic_energy_spend_pc']
-model_spend = sm.OLS(y_spend, x).fit()
-model_spend_robust_ses = model_spend.get_robustcov_results(cov_type="HC2")
-print(model_spend_robust_ses.summary())
+
+ols_spend = sm.OLS(y_spend, x).fit()
+ols_spend_robust_ses = ols_spend.get_robustcov_results(cov_type="HC2")
+print(ols_spend_robust_ses.summary())
+
+wls_spend = sm.WLS(y_spend, x, weights=w).fit()
+wls_spend_robust_ses = wls_spend.get_robustcov_results(cov_type="HC2")
+print(wls_spend_robust_ses.summary())
+
+
+
+
 
